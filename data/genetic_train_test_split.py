@@ -14,7 +14,7 @@ def metaheuristic_separation(dups, weigth):
         print(f"Porcentaje particion de test : {np.abs((dups*ga_instance.best_solution()[0]).sum())/dups.sum()}")
         print(f"Porcentaje particion de train : {np.abs((dups*(1-ga_instance.best_solution()[0])).sum())/dups.sum()}")
 
-    def fitness_func(solution, solution_idx):
+    def fitness_func(ga_instance, solution, solution_idx):
         # solution = [2,0,3,1,...,1]
         # output_array = [np.array(dups)[(np.array(solution) == v).sum() for v in range(len(groups))]
         output = (dups * solution).sum()
