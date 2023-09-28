@@ -1,9 +1,9 @@
 from os.path import join
-
 from time import strftime, time
 
 from torch import no_grad, save
 from torch.nn import CrossEntropyLoss
+from torch.nn.functional import softmax
 from torch.optim import Adadelta
 from torch.utils.tensorboard import SummaryWriter
 
@@ -25,7 +25,7 @@ def train(model, train_loader, validation_loader = None, config: dict = {}):
             metrics (list): List of Torchmetrics compatible metric functions (defaults to None)
             optimizer: PyTorch compatible optimizer (defaults to torch.optim.Adadelta)
             save_weights_dir (Optional, str): path to the folder where the weights should be stored (defaults to None, don't save)
-            tensorboard_writer (Optional, str): path to the folder where the tensorboard record should be created (defaults to None, don't save)
+            tensorboard_writer_logdir (Optional, str): path to the folder where the tensorboard record should be created (defaults to None, don't save)
             validation_interval (int): number of epochs to run a validation cycle (defaults to 1, validate in each epoch)
             verbose (bool): whether to print the results to the terminal (defaults to True)
         }
@@ -35,7 +35,7 @@ def train(model, train_loader, validation_loader = None, config: dict = {}):
     checkpoint_interval = config["checkpoint_interval"] if "checkpoint_interval" in config else None
     device = config["device"] if "device" in config else "cuda"
     epochs = config["epochs"] if "epochs" in config else 100
-    experiment_name = config["experiment_name"] if "experiment_name" in config else f"{model._get_name()}-{strftime('%d-%b-%Y-%H:%M:%S')}"
+    experiment_name = config["experiment_name"] if "experiment_name" in config else f"{model._get_name()}_{strftime('%d-%b-%Y-%H:%M:%S')}"
     loss_function = config["loss_function"] if "loss_function" in config else CrossEntropyLoss()
     metrics = config["metrics"] if "metrics" in config else None
     optimizer = config["optimizer"] if "optimizer" in config else Adadelta(model.parameters())
@@ -43,7 +43,7 @@ def train(model, train_loader, validation_loader = None, config: dict = {}):
     tensorboard_writer = SummaryWriter(log_dir=join(config["tensorboard_writer_logdir"], experiment_name)) if "tensorboard_writer_logdir" in config else None
     validation_interval = config["validation_interval"] if "validation_interval" in config else 1
     verbose = config["verbose"] if "verbose" in config else True
-    
+
     model = model.to(device)
 
     train_epoch_len = len(train_loader)
@@ -57,7 +57,7 @@ def train(model, train_loader, validation_loader = None, config: dict = {}):
         model.train()
         if verbose:
             print("-" * 10)
-            print(f"epoch {epoch + 1}/{epochs}")
+            print(f"Epoch {epoch + 1}/{epochs}")
         start_time = time()
         
         epoch_loss = 0.0
@@ -72,16 +72,19 @@ def train(model, train_loader, validation_loader = None, config: dict = {}):
             loss.backward()
             optimizer.step()
 
+            if any(outputs.sum(dim=1) != 1.0): 
+                outputs_prob = softmax(outputs, dim=1)
             epoch_loss += loss.item()
             if metrics:
                 for name, metric_fct in metrics.items():
-                    metrics_dict[name] = metric_fct(outputs, labels)
+                    
+                    metrics_dict[name] = metric_fct(outputs_prob.to("cpu"), labels.to("cpu"))
     
         epoch_loss /= train_epoch_len
         if tensorboard_writer:
             tensorboard_writer.add_scalar("Loss/train", epoch_loss, epoch)
         if verbose:
-            print(f"Epoch {epoch + 1}: \n\tTrain Loss: {epoch_loss:.4f}")
+            print(f"\tTrain Loss: {epoch_loss:.4f}")
         if metrics:
             for name, metric_fct in metrics.items():
                 value = metric_fct.compute()
@@ -102,23 +105,26 @@ def train(model, train_loader, validation_loader = None, config: dict = {}):
                     val_outputs = model(val_images).as_tensor()
                     loss = loss_function(val_outputs, val_labels)
                     epoch_loss += loss.item()
+
+                    if any(val_outputs.sum(dim=1) != 1.0): 
+                        val_outputs_prob = softmax(val_outputs, dim=1)
                     if metrics:
                         for name, metric_fct in metrics.items():
-                            metrics_dict[name] = metric_fct(outputs, labels)
+                            metrics_dict[name] = metric_fct(val_outputs_prob.to("cpu"), val_labels.to("cpu"))
             
-                epoch_loss /= validation_epoch_len
-                if tensorboard_writer:
-                    tensorboard_writer.add_scalar("Loss/validation", epoch_loss, epoch)
-                if verbose:
-                    print(f"\n\tValidation Loss: {epoch_loss:.4f}")
-                if metrics:
-                    for name, metric_fct in metrics.items():
-                        value = metric_fct.compute()
-                        if tensorboard_writer:
-                            tensorboard_writer.add_scalar(f"{name}/validation", value, epoch)
-                        if verbose:
-                            print(f"\tValidation {name}: {value:.4f}")
-                        metric_fct.reset()
+            epoch_loss /= validation_epoch_len
+            if tensorboard_writer:
+                tensorboard_writer.add_scalar("Loss/validation", epoch_loss, epoch)
+            if verbose:
+                print(f"\n\tValidation Loss: {epoch_loss:.4f}")
+            if metrics:
+                for name, metric_fct in metrics.items():
+                    value = metric_fct.compute()
+                    if tensorboard_writer:
+                        tensorboard_writer.add_scalar(f"{name}/validation", value, epoch)
+                    if verbose:
+                        print(f"\tValidation {name}: {value:.4f}")
+                    metric_fct.reset()
             
             if epoch_loss < best_loss:
                 best_loss = epoch_loss
