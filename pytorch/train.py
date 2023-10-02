@@ -8,7 +8,7 @@ from torch.nn.functional import softmax
 from torch.optim import Adadelta
 from torch.utils.tensorboard import SummaryWriter
 
-def evaluate(model, weights, data_loader, metrics, device: str = "cuda"):
+def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str = "cuda"):
     """
     Basic evaluation function for PyTorch models.
 
@@ -37,8 +37,9 @@ def evaluate(model, weights, data_loader, metrics, device: str = "cuda"):
         print(f"\nResults: \n{', '.join([name+':'+f'{value:.4f}' for name, value in metrics_dict.items()])}")
         return predictions, labels
     
-    model.load_state_dict(load(weights))
-    print("Loaded weights "+weights)
+    if weights:
+        model.load_state_dict(load(weights))
+        print("Loaded weights "+weights)
     model = model.to(device)
     model.eval()
 
