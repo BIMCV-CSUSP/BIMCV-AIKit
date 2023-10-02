@@ -198,3 +198,5 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
 
     if verbose:
         print(f"Training completed, lowest validation loss value: {best_loss:.4f} at epoch: {best_loss_epoch}.")
+    if tensorboard_writer:
+        tensorboard_writer.close()
