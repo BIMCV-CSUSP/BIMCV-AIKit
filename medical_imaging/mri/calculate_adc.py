@@ -69,36 +69,40 @@ def get_save_adc(dwi_path,dwi_bval_pos):
     
     
     dwi_img=monai.transforms.LoadImage(image_only=True)(dwi_path)
+
+    if dwi_img.ndim>3:
     
-    max_bval=np.argmax(dwi_bval_pos)
-    min_bval=np.argmin(dwi_bval_pos)
-    
-    # Get image data as numpy arrays
-    dwimin_data = dwi_img[:,:,:,min_bval]
-    dwimax_data = dwi_img[:,:,:,max_bval]
+        max_bval=np.argmax(dwi_bval_pos)
+        min_bval=np.argmin(dwi_bval_pos)
+        
+        # Get image data as numpy arrays
+        dwimin_data = dwi_img[:,:,:,min_bval]
+        dwimax_data = dwi_img[:,:,:,max_bval]
 
-    # Get image dimensions
-    nx, ny, nz = dwimin_data.shape
+        # Get image dimensions
+        nx, ny, nz = dwimin_data.shape
 
-    # Create a list of all voxels as tuples of indices
-    voxels = [(i, j, k) for i in range(nx) for j in range(ny) for k in range(nz)]
-    
-    b_values=(dwi_bval_pos[min_bval],dwi_bval_pos[max_bval])
-    
-    #print(b_values)
-    args = [(dwimin_data, dwimax_data, voxel, b_values) for voxel in voxels]
+        # Create a list of all voxels as tuples of indices
+        voxels = [(i, j, k) for i in range(nx) for j in range(ny) for k in range(nz)]
+        
+        b_values=(dwi_bval_pos[min_bval],dwi_bval_pos[max_bval])
+        
+        #print(b_values)
+        args = [(dwimin_data, dwimax_data, voxel, b_values) for voxel in voxels]
 
 
-    # # Create a Pool object with 4 worker processes
-    # pool = Pool(4)
+        # # Create a Pool object with 4 worker processes
+        # pool = Pool(4)
 
-    # Use the map method to apply the calculate_adc function to all voxels in parallel
-    #with multiprocessing.Pool(processes=8) as pool:
-    with Pool(8) as pool:
-        adc_values = pool.starmap(calculate_adc, args)
-    #adc_values = calculate_adc(dwimin_data,dwimax_data,voxels,b_values)
+        # Use the map method to apply the calculate_adc function to all voxels in parallel
+        #with multiprocessing.Pool(processes=8) as pool:
+        with Pool(8) as pool:
+            adc_values = pool.starmap(calculate_adc, args)
+        #adc_values = calculate_adc(dwimin_data,dwimax_data,voxels,b_values)
 
-    # Convert the list of ADC values to a numpy array with the same shape as the images
-    adc_map = np.array(adc_values).reshape((nx, ny, nz))
-    
-    return adc_map,dwi_img
+        # Convert the list of ADC values to a numpy array with the same shape as the images
+        adc_map = np.array(adc_values).reshape((nx, ny, nz))
+        
+        return adc_map,dwi_img
+    else:
+        return None,dwi_img
