@@ -2,11 +2,8 @@ from os.path import join
 from time import sleep, strftime, time
 from tqdm import tqdm
 
-from torch import load, no_grad, save, tensor, vstack
-from torch.nn import CrossEntropyLoss
+from torch import load, no_grad, save, vstack
 from torch.nn.functional import softmax
-from torch.optim import Adadelta
-from torch.utils.tensorboard import SummaryWriter
 
 def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str = "cuda"):
     """
@@ -85,13 +82,19 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
     device = config["device"] if "device" in config else "cuda"
     epochs = config["epochs"] if "epochs" in config else 100
     experiment_name = config["experiment_name"] if "experiment_name" in config else f"{model._get_name()}_{strftime('%d-%b-%Y-%H:%M:%S')}"
-    loss_function = config["loss_function"] if "loss_function" in config else CrossEntropyLoss()
+    if "loss_function" in config:
+        loss_function = config["loss_function"]
+    else:
+        from torch.nn import CrossEntropyLoss # Avoid circular imports
+        loss_function = CrossEntropyLoss()
     metrics = config["metrics"] if "metrics" in config else None
-    optimizer = config["optimizer"] if "optimizer" in config else Adadelta(model.parameters())
+    if "optimizer" in config:
+        optimizer = config["optimizer"]
+    else:
+        from torch.optim import Adadelta # Avoid circular imports
+        loss_function = Adadelta(model.parameters())
     save_weights_dir = config["save_weights_dir"] if "save_weights_dir" in config else None
-    tensorboard_writer = (
-        SummaryWriter(log_dir=join(config["tensorboard_writer_logdir"], experiment_name)) if "tensorboard_writer_logdir" in config else None
-    )
+    tensorboard_writer = config["tensorboard_writer"] if "tensorboard_writer" in config else None
     validation_interval = config["validation_interval"] if "validation_interval" in config else 1
     verbose = config["verbose"] if "verbose" in config else True
 
