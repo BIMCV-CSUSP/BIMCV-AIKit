@@ -1,9 +1,10 @@
 from os.path import join
 from time import sleep, strftime, time
-from tqdm import tqdm
 
 from torch import load, no_grad, save, vstack
 from torch.nn.functional import softmax
+from tqdm import tqdm
+
 
 def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str = "cuda"):
     """
@@ -14,7 +15,7 @@ def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str
         data_loader: PyTorch DataLoader object
         device (str): device to train the model (defaults to cuda)
         metrics (dict): dict of Torchmetrics compatible metric functions (defaults to None)
-        }
+        weights (str): path to trained model weights file (.pth)
     """
 
     def compute_metrics(predictions, labels):
@@ -23,20 +24,20 @@ def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str
         metrics_dict = {}
         if any(predictions.sum(dim=1) != 1.0):
             predictions = softmax(predictions, dim=1)
-        predictions = predictions.argmax(dim=1).to('cpu')
-        labels = labels.argmax(dim=1).to('cpu')
+        # predictions = predictions.argmax(dim=1).to('cpu')
+        # labels = labels.argmax(dim=1).to('cpu')
         for name, metric_fct in metrics.items():
             if "matrix" not in name:
-                metrics_dict[name] = metric_fct(predictions, labels).item()
+                metrics_dict[name] = metric_fct(predictions.to("cpu"), labels.to("cpu")).item()
             else:
                 print("\nConfusion Matrix")
-                print(metric_fct(predictions, labels).numpy())
+                print(metric_fct(predictions.to("cpu"), labels.to("cpu")).numpy())
         print(f"\nResults: \n{', '.join([name+':'+f'{value:.4f}' for name, value in metrics_dict.items()])}")
-        return predictions, labels
-    
+        return predictions, metrics_dict
+
     if weights:
         model.load_state_dict(load(weights))
-        print("Loaded weights "+weights)
+        print("Loaded weights " + weights)
     model = model.to(device)
     model.eval()
 
@@ -45,15 +46,15 @@ def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str
 
     with tqdm(data_loader, unit="batch") as tepoch:
         for batch_data in tepoch:
-            tepoch.set_description(f"Progress")
+            tepoch.set_description("Progress")
             batch_images, batch_labels = batch_data["image"].to(device), batch_data["label"].to(device)
             with no_grad():
                 labels.append(batch_labels)
                 outputs.append(model(batch_images))
-    predictions, labels = compute_metrics(vstack(outputs), vstack(labels))
-    print("\n Predictions: " + str(predictions.numpy()))
-    print("True labels: " + str(labels.numpy()))
-                
+    predictions, results = compute_metrics(vstack(outputs), vstack(labels))
+
+    return predictions.cpu().numpy(), results
+
 
 def train(model, train_loader, validation_loader=None, config: dict = {}):
     """
@@ -72,7 +73,7 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
             metrics (dict): dict of Torchmetrics compatible metric functions (defaults to None)
             optimizer: PyTorch compatible optimizer (defaults to torch.optim.Adadelta)
             save_weights_dir (Optional, str): path to the folder where the weights should be stored (defaults to None, don't save)
-            tensorboard_writer_logdir (Optional, str): path to the folder where the tensorboard record should be created (defaults to None, don't save)
+            tensorboard_writer: tensorboard SummaryWriter object (defaults to None, don't save)
             validation_interval (int): number of epochs to run a validation cycle (defaults to 1, validate in each epoch)
             verbose (bool): whether to print the results to the terminal (defaults to True)
         }
@@ -85,13 +86,15 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
     if "loss_function" in config:
         loss_function = config["loss_function"]
     else:
-        from torch.nn import CrossEntropyLoss # Avoid circular imports
+        from torch.nn import CrossEntropyLoss  # Avoid circular imports
+
         loss_function = CrossEntropyLoss()
     metrics = config["metrics"] if "metrics" in config else None
     if "optimizer" in config:
         optimizer = config["optimizer"]
     else:
-        from torch.optim import Adadelta # Avoid circular imports
+        from torch.optim import Adadelta  # Avoid circular imports
+
         loss_function = Adadelta(model.parameters())
     save_weights_dir = config["save_weights_dir"] if "save_weights_dir" in config else None
     tensorboard_writer = config["tensorboard_writer"] if "tensorboard_writer" in config else None
@@ -104,7 +107,7 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
             return
         metrics_dict = {}
         for name, metric_fct in metrics.items():
-            metrics_dict[name] = f"{metric_fct.compute()}"
+            metrics_dict[name] = metric_fct.compute()
             if tensorboard_writer:
                 tensorboard_writer.add_scalar(f"{name}/{stage.lower()}", metrics_dict[name], epoch)
             metric_fct.reset()
@@ -203,3 +206,5 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
         print(f"Training completed, lowest validation loss value: {best_loss:.4f} at epoch: {best_loss_epoch}.")
     if tensorboard_writer:
         tensorboard_writer.close()
+
+    return model
