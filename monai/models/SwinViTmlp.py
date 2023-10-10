@@ -5,13 +5,13 @@ import torch
 
 
 class SwinViTmlp(nn.Module):
-    def __init__(self, n_classes: int = 2):
+    def __init__(self, img_size: tuple = (96, 96, 96), in_channels: int = 1, out_channels: int = 1, n_classes: int = 2):
         super(SwinViTmlp, self).__init__()
 
         # Define Backbone (ResNet50)
         # self.backbone = monai.networks.nets.DenseNet(spatial_dims=3, in_channels=1, out_channels=1, dropout_prob=0.3)#resnet50(pretrained=True)
 
-        self.backbone = monai.networks.nets.SwinUNETR(img_size=(96, 96, 96), in_channels=1, out_channels=1, use_v2=True).swinViT
+        self.backbone = monai.networks.nets.SwinUNETR(img_size=img_size, in_channels=in_channels, out_channels=out_channels, use_v2=True).swinViT
         # Remove FC layer
 
         # Define 'necks' for each head
