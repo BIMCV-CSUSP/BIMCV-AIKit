@@ -5,11 +5,11 @@ import torch
 
 
 class SwinViTmlp(nn.Module):
-    def __init__(self, n_classes: int = 2, pretrained_weights: str =None):
+    def __init__(self, n_classes: int = 2, img_size: tuple = (96,96,96), in_channels: int=1, pretrained_weights: str =None):
         super(SwinViTmlp, self).__init__()
 
         # Define Backbone (SwinUNETR)
-        backbone = monai.networks.nets.SwinUNETR(img_size=(96, 96, 96), in_channels=1, out_channels=14, feature_size=48, use_v2=True)
+        backbone = monai.networks.nets.SwinUNETR(img_size=img_size, in_channels=in_channels, out_channels=14, feature_size=48, use_v2=True)
         if pretrained_weights:
             backbone.load_from(weights=torch.load(pretrained_weights))
 
