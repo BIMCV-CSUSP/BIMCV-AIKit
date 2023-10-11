@@ -64,13 +64,15 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
         validation_loader: PyTorch DataLoader object for validation data (Optional)
         config (dict): {
             checkpoint_interval (Optional, int): number of epochs to save a model checkpoint (defaults to None, don't save)
-            device (str): device to train the model (defaults to cuda)
+            device (str): device to train the model (defaults to cuda)+-
+            early_stopping (Optional, dict): early stopping config, contains "patience" and "tolerance" values (defaults to None, don't terminate)
             epochs (int): number of epochs to train the model (defaults to 100)
             experiment_name (str): identifier for the saved weight files and tensorboard logs
             loss_function: PyTorch compatible loss function (defaults to torch.nn.CrossEntropyLoss)
             metrics (dict): dict of Torchmetrics compatible metric functions (defaults to None)
             optimizer: PyTorch compatible optimizer (defaults to torch.optim.Adadelta)
             save_weights_dir (Optional, str): path to the folder where the weights should be stored (defaults to None, don't save)
+            scheduler: PyTorch compatible learning rate scheduler
             tensorboard_writer: tensorboard SummaryWriter object (defaults to None, don't save)
             validation_interval (int): number of epochs to run a validation cycle (defaults to 1, validate in each epoch)
             verbose (bool): whether to print the results to the terminal (defaults to True)
@@ -79,6 +81,7 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
 
     checkpoint_interval = config["checkpoint_interval"] if "checkpoint_interval" in config else None
     device = config["device"] if "device" in config else "cuda"
+    early_stopping = EarlyStopper(**config["early_stopping"]) if "early_stopping" in config else None
     epochs = config["epochs"] if "epochs" in config else 100
     experiment_name = config["experiment_name"] if "experiment_name" in config else f"{model._get_name()}_{strftime('%d-%b-%Y-%H:%M:%S')}"
     if "loss_function" in config:
@@ -95,6 +98,7 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
 
         loss_function = Adadelta(model.parameters())
     save_weights_dir = config["save_weights_dir"] if "save_weights_dir" in config else None
+    scheduler = config["scheduler"] if "scheduler" in config else None
     tensorboard_writer = config["tensorboard_writer"] if "tensorboard_writer" in config else None
     validation_interval = config["validation_interval"] if "validation_interval" in config else 1
     verbose = config["verbose"] if "verbose" in config else True
@@ -188,6 +192,14 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
                     if verbose:
                         print(f"Lower loss: {best_loss:.4f} at epoch {best_loss_epoch}. Saved new best metric model.")
 
+        if scheduler:
+            scheduler.step(epoch_loss)
+
+        if early_stopping:
+            if early_stopping(epoch_loss):
+                print(f"Validation loss has not decreased for {early_stopping.count} epochs. Stopping training...")
+                break
+
         epoch_elapsed_time = time() - start_time
         if verbose:
             print(f"Epoch elapsed time: {epoch_elapsed_time:.4f}")
@@ -206,3 +218,26 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
         tensorboard_writer.close()
 
     return model
+
+
+class EarlyStopper:
+    """
+    Class to handle training early stopping based on loss metric. If the loss value does not decrease more than
+    "tolerance" for a period longer than "patience" epochs, the training loop is stopped.
+    """
+
+    def __init__(self, patience: int = 10, tolerance: float = 1e-4) -> None:
+        self.best_loss = float("inf")
+        self.count = 0
+        self.patience = patience
+        self.tolerance = tolerance
+
+    def __call__(self, loss: float) -> bool:
+        if (loss < self.best_loss) and (abs(loss - self.best_loss) >= self.tolerance):
+            self.best_loss = loss
+            self.count = 0
+        else:
+            self.count += 1
+            if self.count > self.patience:
+                return True
+        return False
