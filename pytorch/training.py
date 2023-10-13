@@ -160,7 +160,7 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
         print(f"Epoch {epoch + 1}/{epochs}")
                 
         table = PrettyTable()
-        table.title=f"Performance epoch {epoch}"
+        table.title=f"Performance epoch {epoch + 1}"
 
         epoch_loss = 0.0
         with tqdm(train_loader, unit="batch") as tepoch:
