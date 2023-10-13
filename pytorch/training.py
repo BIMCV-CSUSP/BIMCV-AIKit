@@ -4,6 +4,7 @@ from time import sleep, strftime, time
 from torch import load, no_grad, save, vstack
 from torch.nn.functional import softmax
 from tqdm import tqdm
+from prettytable import PrettyTable
 
 
 def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str = "cuda"):
@@ -105,15 +106,28 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
 
     def aggregate_metrics_per_epoch(stage):
         if not metrics:
+            table.add_column("Metric",["Loss"])
+            table.add_column(stage,[epoch_loss])
             tepoch.set_postfix(loss=epoch_loss)
+            sleep(0.001)
             return
         metrics_dict = {}
+        values=[]
         for name, metric_fct in metrics.items():
             metrics_dict[name] = metric_fct.compute()
             if tensorboard_writer:
                 tensorboard_writer.add_scalar(f"{name}/{stage.lower()}", metrics_dict[name], epoch)
             metric_fct.reset()
+            values.append(f"{metrics_dict[name]:.4f}")
+        
+        metrics_col=["Loss"]+list(metrics.keys())
+        values_col=[f"{epoch_loss:.4f}"]+values
+        if stage=="Train":
+            table.add_column("Metric",metrics_col)
+        table.add_column(stage,values_col)
+            
         tepoch.set_postfix(loss=epoch_loss, metrics=metrics_dict)
+        sleep(0.001)
 
     def compute_metrics(predictions, labels):
         if not metrics:
@@ -138,11 +152,15 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
     best_loss_epoch = -1
 
     for epoch in range(epochs):
+        
         model.train(True)
         start_time = time()
 
         print("-" * 10)
         print(f"Epoch {epoch + 1}/{epochs}")
+                
+        table = PrettyTable()
+        table.title=f"Performance epoch {epoch}"
 
         epoch_loss = 0.0
         with tqdm(train_loader, unit="batch") as tepoch:
@@ -203,6 +221,7 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
         epoch_elapsed_time = time() - start_time
         if verbose:
             print(f"Epoch elapsed time: {epoch_elapsed_time:.4f}")
+            print(table)
         if tensorboard_writer:
             tensorboard_writer.add_scalar("epoch_elapsed_time", epoch_elapsed_time, epoch)
 
