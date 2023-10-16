@@ -8,18 +8,18 @@ from multiprocessing import Pool
 
 def calculate_adc(dwimin_data,dwimax_data,voxel,b_values):
     
-    '''
-     calculate_adc function
-        In:
-        - dwimin_data: 3D numpy array representing the DWI image at minimum b-value
-        - dwimax_data: 3D numpy array representing the DWI image at maximum b-value
-        - voxel: A tuple representing the coordinates (i, j, k) of a voxel in the image
-        - b_values: Tuple of two floats, representing the b-values for dwimin_data and dwimax_data
+    """
+    Calculate the Apparent Diffusion Coefficient (ADC) for a given voxel based on DWI data at different b-values.
 
-        Out:
-        - Returns the Apparent Diffusion Coefficient (ADC) value for the given voxel. 
-        - If signal intensities are invalid, returns 0.
-    '''
+    Args:
+        dwimin_data (np.ndarray): 3D numpy array representing the DWI image at minimum b-value.
+        dwimax_data (np.ndarray): 3D numpy array representing the DWI image at maximum b-value.
+        voxel (tuple): A tuple representing the coordinates (i, j, k) of a voxel in the image.
+        b_values (tuple): Tuple of two floats, representing the b-values for dwimin_data and dwimax_data.
+
+    Returns:
+        float: ADC value for the given voxel. If signal intensities are invalid, returns 0.
+    """
     
     
     # Get signal intensities from all images
@@ -55,16 +55,18 @@ def calculate_adc(dwimin_data,dwimax_data,voxel,b_values):
 
 
 def get_save_adc(dwi_path,dwi_bval_pos):
-    '''
-    In:
-    - dwi_path: String, the path to the DWI image to be processed
-    - dwi_bval_pos: List of b-values associated with each volume in the DWI sequence
+    """
+    Compute ADC map from the given DWI image path and associated b-values.
 
-    Out:
-    - adc_map: 3D numpy array representing the ADC map calculated from the DWI image
-    - dwi_img: 4D numpy array of the original DWI image loaded from dwi_path
-    
-    '''
+    Args:
+        dwi_path (str): The path to the DWI image to be processed.
+        dwi_bval_pos (list): List of b-values associated with each volume in the DWI sequence.
+
+    Returns:
+        tuple: 
+            - adc_map (np.ndarray): 3D numpy array representing the ADC map calculated from the DWI image.
+            - dwi_img (np.ndarray): 4D numpy array of the original DWI image loaded from dwi_path.
+    """
 
     
     
