@@ -55,3 +55,43 @@ class Labels3Dto2D(MapTransform):
             return [{"image": slice, "label": lbl} for slice in img]
         elif self.mode == "test":
             return [{"image": slice} for slice in img]
+
+
+
+class ConcatLabels_Multitask(MapTransform):
+    """
+    ConcatLabels_Multitask: A transformation class designed to concatenate labels from multiple tasks 
+    into a single tuple, which can be useful in multitasking scenarios.
+
+    It's a custom MapTransform that takes multiple keys as input and combines the data corresponding 
+    to these keys into a single tuple, then associates this tuple with a new key name.
+
+    Args:
+        keys (Iterable[str]): List of keys to be used to fetch data for concatenation.
+        name (str): The key name for the concatenated labels tuple in the resulting dictionary. Defaults to 'label'.
+
+    Call Args:
+        x (Dict[str, Any]): Input dictionary containing data to be transformed.
+
+    Call Return:
+        x (Dict[str, Any]): Transformed dictionary with concatenated labels under the specified 'name' key.
+
+    Example:
+        transform = ConcatLabels_Multitask(keys=['task1_label', 'task2_label'], name='combined_label')
+        data_dict = {
+            'task1_label': label1,
+            'task2_label': label2,
+        }
+        transformed_data = transform(data_dict)
+    """
+    
+    def __init__(self, keys, name: str = 'label'):
+        MapTransform.__init__(self, keys)
+        self.name = name
+    
+    def __call__(self, x):
+        data_list = []
+        for key in self.keys:
+            data_list.append(x[key])
+        x[self.name] = tuple(data_list)
+        return x
