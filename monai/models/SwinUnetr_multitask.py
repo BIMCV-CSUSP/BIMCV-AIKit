@@ -106,7 +106,7 @@ class SwinUnetr_multitask(nn.Module):
         out = self.model.decoder1(dec0, enc0)
         logits_seg = self.model.out(out)
 
-        return class_out, logits_seg
+        return logits_seg, class_out 
 
 
 def test():
