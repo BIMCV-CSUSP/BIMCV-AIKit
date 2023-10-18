@@ -1,3 +1,5 @@
+
+import signal
 from os.path import join
 from time import sleep, strftime, time
 
@@ -121,6 +123,8 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
     validation_interval = config["validation_interval"] if "validation_interval" in config else 1
     verbose = config["verbose"] if "verbose" in config else True
 
+    killer = GracefulKiller()
+    
     def aggregate_metrics_per_epoch(stage):
         if not metrics:
             table.add_column("Metric",["Loss"])
@@ -263,6 +267,10 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
                 save(model.state_dict(), join(save_weights_dir, f"{experiment_name}_{epoch+1}.pth"))
                 if verbose:
                     print(f"Saved checkpoint at epoch {epoch+1}")
+        
+        if killer.kill_now:
+            print(f"Received SIGTERM or SIGINT. Terminating training... \nLowest validation loss value: {best_loss:.4f} at epoch: {best_loss_epoch}.")
+            break
 
     if verbose:
         print(f"Training completed, lowest validation loss value: {best_loss:.4f} at epoch: {best_loss_epoch}.")
@@ -271,6 +279,15 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
 
     return model
 
+
+class GracefulKiller:
+  kill_now = False
+  def __init__(self):
+    signal.signal(signal.SIGINT, self.exit_gracefully)
+    signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+  def exit_gracefully(self, *args):
+    self.kill_now = True
 
 class EarlyStopper:
     """
