@@ -2,7 +2,7 @@
 from torchmetrics import Metric
 import torch
 
-class metrics_classification_multitask(Metric):
+class metrics_classification_multitask():
     """
     metrics_classification_multitask: A custom metric for multitask classification problems. 
                                     It focuses on extracting the second task's predictions 
@@ -19,20 +19,20 @@ class metrics_classification_multitask(Metric):
     """
 
     def __init__(self,original_metric):
-        super().__init__()
-        
+
         self.metric=original_metric
 
-    def update(self, preds: torch.Tensor, target: torch.Tensor) -> None:
+    def __call__(self, preds: torch.Tensor, target: torch.Tensor) -> None:
         
         preds_,targets=preds[1].argmax(dim=-1).to('cpu'), target[1].argmax(dim=-1).to('cpu')
-       
-        return self.metric(preds_,targets)
+        self.metric(preds_,targets)
+        return self.compute()
         
 
     def compute(self) -> torch.Tensor:
         # compute final result
         return self.metric.compute()
+    
     
     def reset(self):
         self.metric.reset()
