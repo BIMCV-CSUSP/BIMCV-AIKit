@@ -61,7 +61,7 @@ class EfficientViT(nn.Module):
         # Define the Vision Transformer model for classification
         self.vit = ViT(
             in_channels=in_channels_vit,
-            img_size=(32, 32, 8),
+            img_size=(32, 32, 8), # Input image size // 4
             patch_size=4,
             num_classes=n_classes,
             classification=True,
