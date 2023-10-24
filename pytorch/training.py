@@ -134,6 +134,8 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
         tepoch.set_postfix(loss=epoch_loss, metrics=metrics_dict)
         sleep(0.001)
 
+        return metrics_dict
+
     def compute_metrics(predictions, labels):
         if not metrics:
             tepoch.set_postfix(loss=loss.item())
@@ -143,7 +145,8 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
         if any(predictions.sum(dim=1) != 1.0):
             predictions = softmax(predictions, dim=1)
         for name, metric_fct in metrics.items():
-            metrics_dict[name] = f"{metric_fct(predictions.argmax(dim=1).to('cpu'), labels.argmax(dim=1).to('cpu')).item():.4f}"
+            metric_fct(predictions.argmax(dim=1).to('cpu'), labels.argmax(dim=1).to('cpu'))
+            metrics_dict[name] = f"{metric_fct.compute():.4f}"
         tepoch.set_postfix(loss=loss.item(), metrics=metrics_dict)
         sleep(0.001)
 
@@ -153,8 +156,8 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
     if validation_loader:
         validation_epoch_len = len(validation_loader)
 
-    best_loss = 1e10
-    best_loss_epoch = -1
+    best_metric = -1
+    best_metric_epoch = -1
 
     for epoch in range(epochs):
         
@@ -203,17 +206,17 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
                 epoch_loss /= validation_epoch_len
                 if tensorboard_writer:
                     tensorboard_writer.add_scalar("loss/validation", epoch_loss, epoch)
-                aggregate_metrics_per_epoch("Validation")
+                val_epoch_metrics = aggregate_metrics_per_epoch("Validation")
 
-                if epoch_loss < best_loss:
-                    best_loss = epoch_loss
-                    best_loss_epoch = epoch + 1
+                if val_epoch_metrics["f1"] > best_metric:
+                    best_metric = val_epoch_metrics["f1"]
+                    best_metric_epoch = epoch + 1
 
                     if save_weights_dir:
                         save(model.state_dict(), join(save_weights_dir, f"{experiment_name}.pth"))
 
                     if verbose:
-                        print(f"Lower loss: {best_loss:.4f} at epoch {best_loss_epoch}. Saved new best metric model.")
+                        print(f"Best metric value: {best_metric:.4f} at epoch {best_metric_epoch}. Saved new best metric model.")
 
         if scheduler:
             scheduler.step(epoch_loss)
@@ -237,11 +240,11 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
                     print(f"Saved checkpoint at epoch {epoch+1}")
 
         if killer.kill_now:
-            print(f"Received SIGTERM or SIGINT. Terminating training... \nLowest validation loss value: {best_loss:.4f} at epoch: {best_loss_epoch}.")
+            print(f"Received SIGTERM or SIGINT. Terminating training... \nBest metric value: {best_metric:.4f} at epoch: {best_metric_epoch}.")
             break
 
     if verbose and not killer.kill_now:
-        print(f"Training completed, lowest validation loss value: {best_loss:.4f} at epoch: {best_loss_epoch}.")
+        print(f"Training completed, best metric value: {best_metric:.4f} at epoch: {best_metric_epoch}.")
     if tensorboard_writer:
         tensorboard_writer.close()
 
