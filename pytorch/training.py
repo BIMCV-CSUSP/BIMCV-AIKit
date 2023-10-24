@@ -32,6 +32,8 @@ def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str
             else:
                 print("\nConfusion Matrix")
                 print(metric_fct(predictions.argmax(dim=1).to("cpu"), labels.argmax(dim=1).to("cpu")).numpy())
+
+            metric_fct.reset()
         print(f"\nResults: \n{', '.join([name+':'+f'{value:.4f}' for name, value in metrics_dict.items()])}")
         return predictions, metrics_dict
 
