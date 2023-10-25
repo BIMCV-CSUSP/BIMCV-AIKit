@@ -2,7 +2,7 @@ import torch
 from abc import abstractmethod
 from numpy import inf
 from logger import TensorboardWriter
-
+import signal
 
 class BaseTrainer:
     """
@@ -44,6 +44,8 @@ class BaseTrainer:
 
         if config.resume is not None:
             self._resume_checkpoint(config.resume)
+
+        self.killer = GracefulKiller()
 
     @abstractmethod
     def _train_epoch(self, epoch):
@@ -98,6 +100,10 @@ class BaseTrainer:
             if epoch % self.save_period == 0:
                 self._save_checkpoint(epoch, save_best=best)
 
+            if self.killer.kill_now:
+                self.logger.info(f"Received SIGTERM or SIGINT. Terminating training at epoch {epoch}...")
+                break
+
     def _save_checkpoint(self, epoch, save_best=False):
         """
         Saving checkpoints
@@ -149,3 +155,12 @@ class BaseTrainer:
             self.optimizer.load_state_dict(checkpoint['optimizer'])
 
         self.logger.info("Checkpoint loaded. Resume training from epoch {}".format(self.start_epoch))
+
+class GracefulKiller:
+  kill_now = False
+  def __init__(self):
+    signal.signal(signal.SIGINT, self.exit_gracefully)
+    signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+  def exit_gracefully(self, *args):
+    self.kill_now = True
