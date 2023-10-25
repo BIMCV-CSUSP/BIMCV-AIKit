@@ -7,7 +7,7 @@ setup(
     version=__version__,
     url='https://github.com/BIMCV-CSUSP/BIMCV-AIKit',
     py_modules=find_packages(),
-    extra_require={"all": ["monai==1.2.0", 
+    extras_require={"all": ["monai==1.2.0", 
                             "numpy==1.26.0", 
                             "pandas==2.1.0", 
                             "prettytable==3.9.0"
