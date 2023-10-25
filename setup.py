@@ -12,7 +12,7 @@ setup(
                             "pandas == 2.1.0", 
                             "prettytable == 3.9.0",
                             "ptflops == 0.7", 
-                            "pygad == 3.20", 
+                            "pygad == 3.2.0", 
                             "torch == 1.12.1", 
                             "torchmetrics == 1.1.2", 
                             "torchvision == 0.13.1",
