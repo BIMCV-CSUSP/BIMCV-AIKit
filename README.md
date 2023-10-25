@@ -5,5 +5,5 @@ This repository contains useful function and methods to handle medical images, a
 Install as a pip package using:
 
 ```bash
-pip install git+git://github.com/BIMCV-CSUSP/BIMCV-AIKit.git#egg=bimcv_aikit
+pip install git+https://github.com/BIMCV-CSUSP/BIMCV-AIKit.git#egg=bimcv_aikit
 ```
