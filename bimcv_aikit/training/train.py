@@ -41,7 +41,7 @@ def main(config):
 
     # get function handles of loss and metrics
     criterion = getattr(module_loss, config["loss"])
-    metrics = {name: getattr(module_metric, met["type"])(**met["args"]) for name, met in config["metrics"].items()}
+    metrics = {name: getattr(importlib.import_module(met["module"]), met["type"])(**met["args"]) for name, met in config["metrics"].items()}
 
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
