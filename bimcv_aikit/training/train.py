@@ -2,7 +2,7 @@ import argparse
 import collections
 import torch
 import numpy as np
-import data_loader.data_loaders as module_data
+import importlib
 import model.loss as module_loss
 import model.metric as module_metric
 import model.model as module_arch
@@ -22,7 +22,9 @@ def main(config):
     logger = config.get_logger('train')
 
     # setup data_loader instances
-    data_loader = config.init_obj('data_loader', module_data)
+    dataloader_name = config['data_loader']['type']
+    data_loader_module = importlib.import_module(f'bimcv_aikit.dataloaders.{dataloader_name}')
+    data_loader = config.init_obj('data_loader', data_loader_module)
     valid_data_loader = data_loader.split_validation()
 
     # build model architecture, then print to console
