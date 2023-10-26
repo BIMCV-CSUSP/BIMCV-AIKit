@@ -1,28 +1,26 @@
+import monai
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import monai
-
-
 from base import BaseModel
+
 
 ######################################################################
 # Preconfigured MONAI MODELS
 ######################################################################
 class DenseNet(BaseModel):
-
     def __init__(self, num_classes):
-        self.model =  monai.networks.nets.DenseNet(
-            spatial_dims=3, in_channels=4, out_channels=num_classes, dropout_prob=0.2
-        )
+        self.model = monai.networks.nets.DenseNet(spatial_dims=3, in_channels=4, out_channels=num_classes, dropout_prob=0.2)
 
     def forward(self, image):
         return self.model(image)
 
+
 ######################################################################
 # Manual Models PyTorch
 ######################################################################
+
 
 class MnistModel(BaseModel):
     def __init__(self, num_classes=10):
@@ -46,10 +44,14 @@ class MnistModel(BaseModel):
 class Bilinear3D(nn.Module):
     def __init__(self, num_classes):
         super(Bilinear3D, self).__init__()
-        self.conv3d_5_2 = nn.ModuleList([nn.Conv3d(in_channels=1, out_channels=32, kernel_size=(5,5,5), stride=(2,2,2), padding='valid') for _ in range(2)])
-        self.conv3d_3_1 = nn.ModuleList([nn.Conv3d(in_channels=32, out_channels=32, kernel_size=(3,3,3), stride=(1,1,1), padding='valid') for _ in range(12)])
+        self.conv3d_5_2 = nn.ModuleList(
+            [nn.Conv3d(in_channels=1, out_channels=32, kernel_size=(5, 5, 5), stride=(2, 2, 2), padding="valid") for _ in range(2)]
+        )
+        self.conv3d_3_1 = nn.ModuleList(
+            [nn.Conv3d(in_channels=32, out_channels=32, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding="valid") for _ in range(12)]
+        )
         self.bn3d = nn.ModuleList([nn.BatchNorm3d(num_features=32) for _ in range(14)])
-        self.avg = nn.ModuleList([nn.AvgPool3d(kernel_size=(2,2,2)) for _ in range(6)])
+        self.avg = nn.ModuleList([nn.AvgPool3d(kernel_size=(2, 2, 2)) for _ in range(6)])
         self.dense_100 = nn.Linear(in_features=512, out_features=100)
         self.dense = nn.Linear(in_features=100, out_features=num_classes)
         self.bn = nn.BatchNorm1d(num_features=100)
@@ -94,10 +96,9 @@ class Bilinear3D(nn.Module):
         x2 = self.avg[5](x2)
         x2 = torch.flatten(x2, start_dim=1)
 
-        x = torch.cat((x1,x2), dim=1)
+        x = torch.cat((x1, x2), dim=1)
 
         x = self.dense_100(x)
         x = self.bn(x)
         x = self.dense(x)
         return self.softmax(x)
-    
