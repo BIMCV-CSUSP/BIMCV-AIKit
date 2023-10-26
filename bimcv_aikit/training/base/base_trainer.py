@@ -70,11 +70,15 @@ class BaseTrainer:
             log = {'epoch': epoch}
             log.update(result)
 
-            # print logged informations to the screen
-            for key, value in log.items():
-                self.logger.info('    {:15s}: {}'.format(str(key), value))
             table = PrettyTable()
             table.title=f"Performance epoch {epoch + 1}"
+            metrics = list(self.metric_ftns.keys()) + ["loss"]
+            train_values = [f"{value:.4f}" for key, value in log.items() if ("val" not in key and key != "epoch")]
+            val_values = [f"{value:.4f}" for key, value in log.items() if ("val" in key and key != "epoch")]
+            table.add_column("Metrics",metrics)
+            table.add_column("Train",train_values)
+            table.add_column("Validation",val_values)
+            print(table)
 
             # evaluate model performance according to configured metric, save best checkpoint as model_best
             best = False
