@@ -101,7 +101,7 @@ class BaseTrainer:
                 self._save_checkpoint(epoch, save_best=best)
 
             if self.killer.kill_now:
-                self.logger.info(f"Received SIGTERM or SIGINT. Terminating training at epoch {epoch}...")
+                self.logger.info(f"Terminating training at epoch {epoch} after receiving SIGTERM or SIGINT...")
                 break
 
     def _save_checkpoint(self, epoch, save_best=False):
