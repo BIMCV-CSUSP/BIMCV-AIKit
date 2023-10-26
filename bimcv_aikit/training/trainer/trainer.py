@@ -3,11 +3,10 @@ from time import sleep
 import numpy as np
 import torch
 from torch.nn.functional import softmax
-from torchvision.utils import make_grid
 from tqdm import tqdm
 
 from base import BaseTrainer
-from utils import MetricTracker, inf_loop
+from utils import inf_loop
 
 
 class Trainer(BaseTrainer):
@@ -35,6 +34,14 @@ class Trainer(BaseTrainer):
         self.log_step = int(np.sqrt(data_loader.batch_size))
 
     def _aggregate_metrics_per_epoch(self, stage, epoch):
+        """
+        Aggregates metrics for the given stage and epoch, and logs to tensorboard.
+
+        :param stage: The stage of the training process. Must be a string.
+        :param epoch: The epoch number. Must be an integer.
+        :return: A dictionary containing the aggregated metrics.
+        """
+
         if not self.metric_ftns:
             return {}, []
         metrics_dict = {}
@@ -47,6 +54,14 @@ class Trainer(BaseTrainer):
         return metrics_dict
 
     def _compute_metrics(self, predictions, labels):
+        """
+        Computes metrics for the given predictions and labels.
+
+        :param predictions: torch.Tensor, the predicted values.
+        :param labels: torch.Tensor, the true values.
+        :return: A dictionary containing the computed metrics.
+        """
+        
         if not self.metric_ftns:
             return {}
         metrics_dict = {}
