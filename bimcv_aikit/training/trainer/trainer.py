@@ -5,6 +5,8 @@ from base import BaseTrainer
 from utils import inf_loop, MetricTracker
 from tqdm import tqdm
 from time import sleep
+from torch.nn.functional import softmax
+
 
 
 class Trainer(BaseTrainer):
@@ -29,8 +31,33 @@ class Trainer(BaseTrainer):
         self.lr_scheduler = lr_scheduler
         self.log_step = int(np.sqrt(data_loader.batch_size))
 
-        self.train_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
-        self.valid_metrics = MetricTracker('loss', *[m.__name__ for m in self.metric_ftns], writer=self.writer)
+
+    def _aggregate_metrics_per_epoch(self, stage, epoch):
+        if not self.metric_ftns:
+            return {}, []
+        metrics_dict = {}
+        values=[]
+        for name, metric_fct in self.metric_ftns.items():
+            metrics_dict[name] = metric_fct.compute()
+            self.writer.add_scalar(f"{name}/{stage.lower()}", metrics_dict[name], epoch)
+            metric_fct.reset()
+            values.append(f"{metrics_dict[name]:.4f}")
+        return metrics_dict
+
+    def _compute_metrics(self, predictions, labels):
+        if not self.metric_ftns:
+            return {}
+        metrics_dict = {}
+        if any(predictions.sum(dim=1) != 1.0): # if predictions are not probabilities
+            predictions = softmax(predictions, dim=1)
+        if len(predictions.shape) == 2: # if predictions are one-hot
+            predictions = predictions.argmax(dim=1)
+        if len(labels.shape) == 2: # if predictions are one-hot
+            labels = labels.argmax(dim=1)
+        for name, metric_fct in self.metric_ftns.items():
+            metric_fct(predictions.to('cpu'), labels.to('cpu'))
+            metrics_dict[name] = f"{metric_fct.compute():.4f}"
+        return metrics_dict
 
     def _train_epoch(self, epoch):
         """
@@ -39,10 +66,11 @@ class Trainer(BaseTrainer):
         :param epoch: Integer, current training epoch.
         :return: A log that contains average loss and metric in this epoch.
         """
+
         self.model.train()
-        self.train_metrics.reset()
 
         with tqdm(self.data_loader, unit="batch") as tepoch:
+            epoch_loss = 0.0
             for batch_idx, (data, target) in enumerate(tepoch):
                 tepoch.set_description(f"Train Epoch {epoch}")
                 data, target = data.to(self.device), target.to(self.device)
@@ -53,31 +81,36 @@ class Trainer(BaseTrainer):
                 loss.backward()
                 self.optimizer.step()
 
-                self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
-                self.train_metrics.update('loss', loss.item())
-                for met in self.metric_ftns:
-                    self.train_metrics.update(met.__name__, met(output, target))
-
+                metrics_dict = self._compute_metrics(output, target)
+                epoch_loss += loss.item()
                 if batch_idx % self.log_step == 0:
-                    # self.logger.debug('Train Epoch: {} {} Loss: {:.6f}'.format(
-                    #     epoch,
-                    #     self._progress(batch_idx),
-                    #     loss.item()))
-                    tepoch.set_postfix(loss=loss.item())
+                    if not self.metric_ftns:
+                        tepoch.set_postfix(loss=epoch_loss/(batch_idx+1))
+                    else:
+                        tepoch.set_postfix(loss=epoch_loss/(batch_idx+1), metrics=metrics_dict)
                     sleep(0.001)
-                    self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
 
-                if batch_idx == self.len_epoch:
+                #     self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
+
+                if batch_idx == self.len_epoch: # iteration-based training
                     break
-        log = self.train_metrics.result()
+
+        metrics_dict = self._aggregate_metrics_per_epoch("train", epoch)
+
+        if not self.metric_ftns:
+            tepoch.set_postfix(loss=epoch_loss/(batch_idx+1))
+        else:
+            tepoch.set_postfix(loss=epoch_loss/(batch_idx+1), metrics=metrics_dict)
+        sleep(0.001)
+        metrics_dict["loss"] = epoch_loss/(batch_idx+1)
 
         if self.do_validation:
             val_log = self._valid_epoch(epoch)
-            log.update(**{'val_'+k : v for k, v in val_log.items()})
+            metrics_dict.update(**{'val_'+k : v for k, v in val_log.items()})
 
         if self.lr_scheduler is not None:
             self.lr_scheduler.step()
-        return log
+        return metrics_dict
 
     def _valid_epoch(self, epoch):
         """
@@ -87,9 +120,9 @@ class Trainer(BaseTrainer):
         :return: A log that contains information about validation
         """
         self.model.eval()
-        self.valid_metrics.reset()
         with torch.no_grad():
             with tqdm(self.valid_data_loader, unit="batch") as tepoch:
+                epoch_loss = 0.0
                 for batch_idx, (data, target) in enumerate(tepoch):
                     tepoch.set_description(f"Validation Epoch {epoch}")
                     data, target = data.to(self.device), target.to(self.device)
@@ -97,25 +130,20 @@ class Trainer(BaseTrainer):
                     output = self.model(data)
                     loss = self.criterion(output, target)
 
-                    self.writer.set_step((epoch - 1) * len(self.valid_data_loader) + batch_idx, 'valid')
-                    self.valid_metrics.update('loss', loss.item())
-                    tepoch.set_postfix(loss=loss.item())
-                    sleep(0.001)
-                    for met in self.metric_ftns:
-                        self.valid_metrics.update(met.__name__, met(output, target))
-                    self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
+                    metrics_dict = self._compute_metrics(output, target)
+                    epoch_loss += loss.item()
+                    if batch_idx % self.log_step == 0:
+                        if not self.metric_ftns:
+                            tepoch.set_postfix(loss=epoch_loss/(batch_idx+1))
+                        else:
+                            tepoch.set_postfix(loss=epoch_loss/(batch_idx+1), metrics=metrics_dict)
+                        sleep(0.001)
+                    # self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
 
         # add histogram of model parameters to the tensorboard
-        for name, p in self.model.named_parameters():
-            self.writer.add_histogram(name, p, bins='auto')
-        return self.valid_metrics.result()
+        # for name, p in self.model.named_parameters():
+        #     self.writer.add_histogram(name, p, bins='auto')
+        metrics_dict = self._aggregate_metrics_per_epoch("valid", epoch)
+        metrics_dict["loss"] = epoch_loss/(batch_idx+1)
+        return metrics_dict
 
-    def _progress(self, batch_idx):
-        base = '[{}/{} ({:.0f}%)]'
-        if hasattr(self.data_loader, 'n_samples'):
-            current = batch_idx * self.data_loader.batch_size
-            total = self.data_loader.n_samples
-        else:
-            current = batch_idx
-            total = self.len_epoch
-        return base.format(current, total, 100.0 * current / total)
