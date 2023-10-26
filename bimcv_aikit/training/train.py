@@ -4,7 +4,6 @@ import importlib
 
 import numpy as np
 import torch
-import torchmetrics as module_metric
 
 import model.loss as module_loss
 import model.model as module_arch
