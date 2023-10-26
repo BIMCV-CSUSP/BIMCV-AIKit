@@ -3,6 +3,8 @@ from abc import abstractmethod
 from numpy import inf
 from logger import TensorboardWriter
 import signal
+import sys
+from prettytable import PrettyTable
 
 class BaseTrainer:
     """
@@ -71,6 +73,8 @@ class BaseTrainer:
             # print logged informations to the screen
             for key, value in log.items():
                 self.logger.info('    {:15s}: {}'.format(str(key), value))
+            table = PrettyTable()
+            table.title=f"Performance epoch {epoch + 1}"
 
             # evaluate model performance according to configured metric, save best checkpoint as model_best
             best = False
@@ -161,6 +165,10 @@ class GracefulKiller:
   def __init__(self):
     signal.signal(signal.SIGINT, self.exit_gracefully)
     signal.signal(signal.SIGTERM, self.exit_gracefully)
+    self.cont = 0
 
   def exit_gracefully(self, *args):
     self.kill_now = True
+    self.cont += 1
+    if self.cont > 1:
+        raise KeyboardInterrupt
