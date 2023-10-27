@@ -1,25 +1,27 @@
 import argparse
 import collections
 import importlib
+import json
 
 import numpy as np
 import torch
 
 import model.loss as module_loss
 import model.model as module_arch
+import trainer as module_trainer
 from parse_config import ConfigParser
-from trainer import Trainer
 from utils import prepare_device
 
 # fix random seeds for reproducibility
-SEED = 123
-torch.manual_seed(SEED)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
-np.random.seed(SEED)
 
 
 def main(config):
+    SEED = config["seed"] if config["seed"] else torch.ranint(1, 10000)
+    torch.manual_seed(SEED)
+    np.random.seed(SEED)
+
     logger = config.get_logger("train")
 
     # setup data_loader instances
@@ -47,6 +49,7 @@ def main(config):
     optimizer = config.init_obj("optimizer", torch.optim, trainable_params)
     lr_scheduler = config.init_obj("lr_scheduler", torch.optim.lr_scheduler, optimizer)
 
+    Trainer = getattr(module_trainer, config["trainer"]["type"])
     trainer = Trainer(
         model,
         criterion,
@@ -54,12 +57,32 @@ def main(config):
         optimizer,
         config=config,
         device=device,
-        data_loader=data_loader,
+        train_data_loader=data_loader,
         valid_data_loader=valid_data_loader,
         lr_scheduler=lr_scheduler,
     )
 
     trainer.train()
+
+    train_predictions, train_results = trainer.evaluate(data_loader)
+    val_predictions, val_results = trainer.evaluate(valid_data_loader)
+
+    del data_loader, valid_data_loader
+
+    test_loader = None
+    if test_loader:
+        test_predictions, test_results = trainer.evaluate(test_loader)
+
+    results = {
+        "Train Metrics": train_results,
+        "Val Metrics": val_results,
+        "Test Metrics": test_results if test_loader else None,
+        "Train Predictions": train_predictions.tolist(),
+        "Val Predictions": val_predictions.tolist(),
+        "Test Predictions": test_predictions.tolist() if test_loader else None,
+    }
+    with open(f"{trainer.checkpoint_dir}/results.json", "w") as json_file:
+        json.dump(results, json_file, ensure_ascii=False, indent=4)
 
 
 if __name__ == "__main__":
