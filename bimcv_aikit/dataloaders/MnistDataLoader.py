@@ -1,5 +1,5 @@
 from torchvision import datasets, transforms
-from base import BaseDataLoader
+from .base_data_loader import BaseDataLoader # At the moment this line is only for testing purposes
 
 
 class MnistDataLoader(BaseDataLoader):

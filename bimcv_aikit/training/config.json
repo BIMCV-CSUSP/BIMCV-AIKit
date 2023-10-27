@@ -1,8 +1,9 @@
 {
     "name": "Mnist_LeNet",
+    "task": "classification",
     "n_gpu": 0,
     "arch": {
-        "module": "bimcv_aikit.models",
+        "module": "bimcv_aikit.models.classification",
         "type": "MnistModel",
         "args": {}
     },
