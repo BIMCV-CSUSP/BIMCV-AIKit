@@ -25,7 +25,7 @@ class BaseTrainer:
 
         cfg_trainer = config["trainer"]
         self.epochs = cfg_trainer["epochs"]
-        self.save_period = cfg_trainer["save_period"]
+        self.save_period = cfg_trainer["save_period"] if cfg_trainer["save_period"] else (self.epochs + 1)
         self.monitor = cfg_trainer.get("monitor", "off")
 
         # configuration to monitor model performance and save best
@@ -108,8 +108,7 @@ class BaseTrainer:
                     self.logger.info("Validation performance didn't improve for {} epochs. " "Training stops.".format(self.early_stop))
                     break
 
-            if epoch % self.save_period == 0:
-                self._save_checkpoint(epoch, save_best=best)
+            self._save_checkpoint(epoch, save_best=best)
 
             if self.killer.kill_now:
                 self.logger.info(f"Terminating training at epoch {epoch} after receiving SIGTERM or SIGINT...")
@@ -132,9 +131,10 @@ class BaseTrainer:
             "monitor_best": self.mnt_best,
             "config": self.config,
         }
-        filename = str(self.checkpoint_dir / "checkpoint-epoch{}.pth".format(epoch))
-        torch.save(state, filename)
-        self.logger.info("Saving checkpoint: {} ...".format(filename))
+        if epoch % self.save_period == 0:
+            filename = str(self.checkpoint_dir / "checkpoint-epoch{}.pth".format(epoch))
+            torch.save(state, filename)
+            self.logger.info("Saving checkpoint: {} ...".format(filename))
         if save_best:
             best_path = str(self.checkpoint_dir / "model_best.pth")
             torch.save(state, best_path)
