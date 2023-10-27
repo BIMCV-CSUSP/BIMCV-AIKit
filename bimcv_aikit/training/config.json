@@ -2,6 +2,7 @@
     "name": "Mnist_LeNet",
     "n_gpu": 0,
     "arch": {
+        "module": "bimcv_aikit.models",
         "type": "MnistModel",
         "args": {}
     },

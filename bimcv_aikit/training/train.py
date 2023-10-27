@@ -7,7 +7,6 @@ import torch
 import torchmetrics as module_metric
 
 import model.loss as module_loss
-import model.model as module_arch
 from parse_config import ConfigParser
 from trainer import Trainer
 from utils import prepare_device
@@ -30,6 +29,8 @@ def main(config):
     valid_data_loader = data_loader.split_validation()
 
     # build model architecture, then print to console
+    module_name = config["arch"]["module"]
+    module_arch = importlib.import_module(f"{module_name}")
     model = config.init_obj("arch", module_arch)
     logger.info(model)
 
