@@ -1,1 +1,1 @@
-from .trainer import *
+from .ClassificationTrainer import ClassificationTrainer

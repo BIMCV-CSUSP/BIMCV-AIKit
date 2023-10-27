@@ -1,6 +1,7 @@
 {
     "name": "Mnist_LeNet",
     "n_gpu": 0,
+    "seed": 42,
     "arch": {
         "type": "MnistModel",
         "args": {}
@@ -52,9 +53,9 @@
         }
     },
     "trainer": {
-        "epochs": 1,
+        "epochs": 100,
         "save_dir": "saved/",
-        "save_period": 11,
+        "save_period": null,
         "verbosity": 2,
         "monitor": "min val_loss",
         "early_stop": 10,
