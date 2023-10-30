@@ -54,9 +54,9 @@ class ClassificationTrainer(BaseTrainer):
 
         with torch.no_grad():
             with tqdm(data_loader, unit="batch") as tepoch:
-                for data, target in tepoch:
+                for batch_data in tepoch:
                     tepoch.set_description("Progress")
-                    data, target = data.to(self.device), target.to(self.device)
+                    data, target = batch_data["image"].to(self.device), batch_data["label"].to(self.device)
                     labels.append(target)
                     outputs.append(self.model(data))
 
@@ -128,14 +128,15 @@ class ClassificationTrainer(BaseTrainer):
         :param epoch: Integer, current training epoch.
         :return: A log that contains average loss and metric in this epoch.
         """
-
+        
+        self.model = self.model.to(self.device)
         self.model.train()
 
         with tqdm(self.data_loader, unit="batch") as tepoch:
             epoch_loss = 0.0
-            for batch_idx, (data, target) in enumerate(tepoch):
+            for batch_idx, batch_data in enumerate(tepoch):
                 tepoch.set_description(f"Train Epoch {epoch}")
-                data, target = data.to(self.device), target.to(self.device)
+                data, target = batch_data["image"].to(self.device), batch_data["label"].to(self.device)
 
                 self.optimizer.zero_grad()
                 output = self.model(data)
@@ -185,9 +186,9 @@ class ClassificationTrainer(BaseTrainer):
         with torch.no_grad():
             with tqdm(self.valid_data_loader, unit="batch") as tepoch:
                 epoch_loss = 0.0
-                for batch_idx, (data, target) in enumerate(tepoch):
+                for batch_idx, batch_data in enumerate(tepoch):
                     tepoch.set_description(f"Validation Epoch {epoch}")
-                    data, target = data.to(self.device), target.to(self.device)
+                    data, target = batch_data["image"].to(self.device), batch_data["label"].to(self.device)
 
                     output = self.model(data)
                     loss = self.criterion(output, target)
@@ -205,6 +206,6 @@ class ClassificationTrainer(BaseTrainer):
         # add histogram of model parameters to the tensorboard
         # for name, p in self.model.named_parameters():
         #     self.writer.add_histogram(name, p, bins='auto')
-        metrics_dict = self._aggregate_metrics_per_epoch("valid", epoch)
+        metrics_dict = self._aggregate_metrics_per_epoch("validation", epoch)
         metrics_dict["loss"] = epoch_loss / (batch_idx + 1)
         return metrics_dict

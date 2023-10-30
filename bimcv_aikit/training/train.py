@@ -6,8 +6,8 @@ import json
 import numpy as np
 import torch
 
+import bimcv_aikit.dataloaders as data_loader_module
 import model.loss as module_loss
-import model.model as module_arch
 import trainer as module_trainer
 from parse_config import ConfigParser
 from utils import prepare_device
@@ -25,14 +25,10 @@ def main(config):
     logger = config.get_logger("train")
 
     # setup data_loader instances
-    dataloader_name = config["data_loader"]["type"]
-    data_loader_module = importlib.import_module(f"bimcv_aikit.dataloaders.{dataloader_name}")
     data_loader = config.init_obj("data_loader", data_loader_module)
-    valid_data_loader = data_loader.split_validation()
 
     # build model architecture, then print to console
-    module_name = config["arch"]["module"]
-    module_arch = importlib.import_module(f"{module_name}")
+    module_arch = importlib.import_module(config["arch"]["module"])
     model = config.init_obj("arch", module_arch)
     logger.info(model)
 
@@ -43,13 +39,16 @@ def main(config):
         model = torch.nn.DataParallel(model, device_ids=device_ids)
 
     # get function handles of loss and metrics
-    criterion = getattr(module_loss, config["loss"])
+    criterion = config.init_obj("loss", importlib.import_module(config["loss"]["module"]), **{"weight": torch.tensor(data_loader.class_weights).to(device)})
     metrics = {name: getattr(importlib.import_module(met["module"]), met["type"])(**met["args"]) for name, met in config["metrics"].items()}
 
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = config.init_obj("optimizer", torch.optim, trainable_params)
-    lr_scheduler = config.init_obj("lr_scheduler", torch.optim.lr_scheduler, optimizer)
+    lr_scheduler = config.init_obj("lr_scheduler", torch.optim.lr_scheduler, optimizer) if config["lr_scheduler"] else None
+
+    train_loader = data_loader("train")
+    valid_loader = data_loader("dev")
 
     Trainer = getattr(module_trainer, config["trainer"]["type"])
     trainer = Trainer(
@@ -59,19 +58,19 @@ def main(config):
         optimizer,
         config=config,
         device=device,
-        train_data_loader=data_loader,
-        valid_data_loader=valid_data_loader,
+        train_data_loader=train_loader,
+        valid_data_loader=valid_loader,
         lr_scheduler=lr_scheduler,
     )
 
     trainer.train()
 
-    train_predictions, train_results = trainer.evaluate(data_loader)
-    val_predictions, val_results = trainer.evaluate(valid_data_loader)
+    train_predictions, train_results = trainer.evaluate(train_loader)
+    val_predictions, val_results = trainer.evaluate(valid_loader)
 
-    del data_loader, valid_data_loader
+    del train_loader, valid_loader
 
-    test_loader = None
+    test_loader = data_loader("test")
     if test_loader:
         test_predictions, test_results = trainer.evaluate(test_loader)
 
@@ -83,7 +82,7 @@ def main(config):
         "Val Predictions": val_predictions.tolist(),
         "Test Predictions": test_predictions.tolist() if test_loader else None,
     }
-    with open(f"{trainer.checkpoint_dir}/results.json", "w") as json_file:
+    with open(f"{trainer.log_dir}/results.json", "w") as json_file:
         json.dump(results, json_file, ensure_ascii=False, indent=4)
 
 
