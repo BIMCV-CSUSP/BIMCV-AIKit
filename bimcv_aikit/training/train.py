@@ -82,7 +82,7 @@ def main(config):
         "Val Predictions": val_predictions.tolist(),
         "Test Predictions": test_predictions.tolist() if test_loader else None,
     }
-    with open(f"{trainer.log_dir}/results.json", "w") as json_file:
+    with open(f"{config.log_dir}/results.json", "w") as json_file:
         json.dump(results, json_file, ensure_ascii=False, indent=4)
 
 
