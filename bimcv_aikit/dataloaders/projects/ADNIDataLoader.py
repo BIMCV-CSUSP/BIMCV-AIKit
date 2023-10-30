@@ -4,14 +4,14 @@ from sklearn.utils.class_weight import compute_class_weight
 from torch import as_tensor
 from torch.nn.functional import one_hot
 
-import monai.data as data
+from monai.data import CacheDataset, DataLoader
 from monai import transforms
 from bimcv_aikit.monai.transforms import DeleteBlackSlices
 
 config_default = {}
 
 class ADNIDataLoader:
-    def __init__(self, path: str, sep: str = ",", classes: list = ["CN", "AD"], map_labels_dict: dict = None, config: dict = config_default):
+    def __init__(self, path: str, sep: str = ",", classes: list = ["CN", "AD"], map_labels_dict: dict = None, test_run: bool = False, input_shape: str = "(96,96,96)", config: dict = config_default):
 
         df = read_csv(path, sep=sep)
         if map_labels_dict:
@@ -25,24 +25,24 @@ class ADNIDataLoader:
         onehot = lambda x: one_hot(as_tensor(x), num_classes=n_classes).float()
         df["onehot"] = df["intLabel"].apply(onehot)
         self.groupby = df.groupby("Partition")
-        self.class_weights = compute_class_weight(
+        self._class_weights = compute_class_weight(
             class_weight="balanced", 
             classes=unique(self.groupby.get_group("train")["intLabel"].values), 
             y=self.groupby.get_group("train")["intLabel"].values
         )
         self.transforms = transforms.Compose(
             [
-                transforms.LoadImaged(keys=["image"], ensure_channel_first=True, image_only=False),
+                transforms.LoadImaged(keys=["image"], reader="NibabelReader", ensure_channel_first=True, image_only=False),
                 transforms.ToTensord(keys=["image"]),
                 transforms.NormalizeIntensityd(keys=["image"]),
                 transforms.ScaleIntensityd(keys=["image"]),
                 transforms.CropForegroundd(keys=["image"], source_key="image"),
                 DeleteBlackSlices(keys=["image"], threshold=0.5),
-                transforms.Resized(keys=["image"], spatial_size=eval(config["input_shape"])),
+                transforms.Resized(keys=["image"], spatial_size=eval(input_shape)),
             ]
         )
+        self.test_run = test_run
         self.config_args = config
-        self.test_run = config["test_run"] if "test_run" in config else False
 
     def __call__(self, partition: str):
         data = [
@@ -51,5 +51,9 @@ class ADNIDataLoader:
         ]
         if self.test_run:
             data = data[:16]
-        dataset = data.CacheDataset(data=data, transform=self.transforms, **self.config_args)
-        return data.DataLoader(dataset, **self.config_args)
+        dataset = CacheDataset(data=data, transform=self.transforms, num_workers=7)
+        return DataLoader(dataset, **self.config_args)
+
+    @property
+    def class_weights(self):
+        return self._class_weights
