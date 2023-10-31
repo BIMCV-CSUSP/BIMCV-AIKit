@@ -166,6 +166,7 @@ class ClassificationTrainer(BaseTrainer):
             tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict)
         sleep(0.001)
         metrics_dict["loss"] = epoch_loss / (batch_idx + 1)
+        self.writer.add_scalar("loss/train", metrics_dict["loss"], epoch)
 
         if self.do_validation:
             val_log = self._valid_epoch(epoch)
@@ -208,4 +209,5 @@ class ClassificationTrainer(BaseTrainer):
         #     self.writer.add_histogram(name, p, bins='auto')
         metrics_dict = self._aggregate_metrics_per_epoch("validation", epoch)
         metrics_dict["loss"] = epoch_loss / (batch_idx + 1)
+        self.writer.add_scalar("loss/validation", metrics_dict["loss"], epoch)
         return metrics_dict
