@@ -82,7 +82,7 @@ class BaseTrainer:
             table.add_column("Metrics", metrics)
             table.add_column("Train", train_values)
             table.add_column("Validation", val_values)
-            print(table)
+            self.logger.info(table)
 
             # evaluate model performance according to configured metric, save best checkpoint as model_best
             best = False
