@@ -7,7 +7,6 @@ import numpy as np
 import torch
 
 import bimcv_aikit.dataloaders as data_loader_module
-import model.loss as module_loss
 import trainer as module_trainer
 from parse_config import ConfigParser
 from utils import prepare_device
@@ -47,8 +46,8 @@ def main(config):
     optimizer = config.init_obj("optimizer", torch.optim, trainable_params)
     lr_scheduler = config.init_obj("lr_scheduler", torch.optim.lr_scheduler, optimizer) if config["lr_scheduler"] else None
 
-    train_loader = data_loader("train")
-    valid_loader = data_loader("dev")
+    train_loader = data_loader(config["data_loader"]["partitions"]["train"])
+    valid_loader = data_loader(config["data_loader"]["partitions"]["val"])
 
     Trainer = getattr(module_trainer, config["trainer"]["type"])
     trainer = Trainer(
@@ -66,20 +65,21 @@ def main(config):
     trainer.train()
 
     train_predictions, train_results = trainer.evaluate(train_loader)
-    val_predictions, val_results = trainer.evaluate(valid_loader)
+    if valid_loader:
+        val_predictions, val_results = trainer.evaluate(valid_loader)
 
-    del train_loader, valid_loader
+    del train_loader#, valid_loader
 
-    test_loader = data_loader("test")
+    test_loader = data_loader(config["data_loader"]["partitions"]["test"])
     if test_loader:
         test_predictions, test_results = trainer.evaluate(test_loader)
 
     results = {
         "Train Metrics": train_results,
-        "Val Metrics": val_results,
+        "Val Metrics": val_results if valid_loader else None,
         "Test Metrics": test_results if test_loader else None,
         "Train Predictions": train_predictions.tolist(),
-        "Val Predictions": val_predictions.tolist(),
+        "Val Predictions": val_predictions.tolist() if valid_loader else None,
         "Test Predictions": test_predictions.tolist() if test_loader else None,
     }
     with open(f"{config.log_dir}/results.json", "w") as json_file:
