@@ -1,2 +1,5 @@
 from .MnistDataLoader import MnistDataLoader
+from .projects.ProstateClassDataLoader import ProstateClassDataLoader
 from .projects.ADNIDataLoader import ADNIDataLoader
+from .projects.RetinaDataLoader import RetinaDataLoader
+from .projects.ChaimeleonProstateDataLoader import ChaimeleonProstateDataLoader
