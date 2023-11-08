@@ -29,7 +29,7 @@ def main(config):
     # build model architecture, then print to console
     module_arch = importlib.import_module(config["arch"]["module"])
     model = config.init_obj("arch", module_arch)
-    logger.info(model)
+    logger.debug(model)
 
     # prepare for (multi-device) GPU training
     device, device_ids = prepare_device(config["n_gpu"])
