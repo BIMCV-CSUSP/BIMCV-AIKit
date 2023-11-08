@@ -2,14 +2,14 @@ import signal
 from os.path import join
 from time import sleep, strftime, time
 
+from monai.visualize import img2tensorboard
+from prettytable import PrettyTable
 from torch import load, no_grad, save, vstack
 from torch.nn.functional import softmax
 from tqdm import tqdm
-from prettytable import PrettyTable
-from monai.visualize import img2tensorboard
 
 
-def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str = "cuda", inferer = None):
+def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str = "cuda", inferer=None):
     """
     Basic evaluation function for PyTorch models.
 
@@ -54,7 +54,7 @@ def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str
             with no_grad():
                 labels.append(batch_labels)
                 if inferer:
-                    outputs.append(inferer(batch_images,model))
+                    outputs.append(inferer(batch_images, model))
                 else:
                     outputs.append(model(batch_images))
     predictions, results = compute_metrics(vstack(outputs), vstack(labels))
@@ -62,7 +62,7 @@ def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str
     return predictions.cpu().numpy(), results
 
 
-def train(model, train_loader, validation_loader=None, config: dict = {}, inferer = None):
+def train(model, train_loader, validation_loader=None, config: dict = {}, inferer=None):
     """
     Basic training function for PyTorch models.
 
@@ -115,26 +115,26 @@ def train(model, train_loader, validation_loader=None, config: dict = {}, infere
 
     def aggregate_metrics_per_epoch(stage):
         if not metrics:
-            table.add_column("Metric",["Loss"])
-            table.add_column(stage,[epoch_loss])
+            table.add_column("Metric", ["Loss"])
+            table.add_column(stage, [epoch_loss])
             tepoch.set_postfix(loss=epoch_loss)
             sleep(0.001)
             return
         metrics_dict = {}
-        values=[]
+        values = []
         for name, metric_fct in metrics.items():
             metrics_dict[name] = metric_fct.compute()
             if tensorboard_writer:
                 tensorboard_writer.add_scalar(f"{name}/{stage.lower()}", metrics_dict[name], epoch)
             metric_fct.reset()
             values.append(f"{metrics_dict[name]:.4f}")
-        
-        metrics_col=["Loss"]+list(metrics.keys())
-        values_col=[f"{epoch_loss:.4f}"]+values
-        if stage=="Train":
-            table.add_column("Metric",metrics_col)
-        table.add_column(stage,values_col)
-            
+
+        metrics_col = ["Loss"] + list(metrics.keys())
+        values_col = [f"{epoch_loss:.4f}"] + values
+        if stage == "Train":
+            table.add_column("Metric", metrics_col)
+        table.add_column(stage, values_col)
+
         tepoch.set_postfix(loss=epoch_loss, metrics=metrics_dict)
         sleep(0.001)
 
@@ -149,7 +149,7 @@ def train(model, train_loader, validation_loader=None, config: dict = {}, infere
         if any(predictions.sum(dim=1) != 1.0):
             predictions = softmax(predictions, dim=1)
         for name, metric_fct in metrics.items():
-            metric_fct(predictions.argmax(dim=1).to('cpu'), labels.argmax(dim=1).to('cpu'))
+            metric_fct(predictions.argmax(dim=1).to("cpu"), labels.argmax(dim=1).to("cpu"))
             metrics_dict[name] = f"{metric_fct.compute():.4f}"
         tepoch.set_postfix(loss=loss.item(), metrics=metrics_dict)
         sleep(0.001)
@@ -164,15 +164,14 @@ def train(model, train_loader, validation_loader=None, config: dict = {}, infere
     best_metric_epoch = -1
 
     for epoch in range(epochs):
-        
         model.train(True)
         start_time = time()
 
         print("-" * 10)
         print(f"Epoch {epoch + 1}/{epochs}")
-                
+
         table = PrettyTable()
-        table.title=f"Performance epoch {epoch + 1}"
+        table.title = f"Performance epoch {epoch + 1}"
 
         epoch_loss = 0.0
         with tqdm(train_loader, unit="batch") as tepoch:
@@ -191,8 +190,9 @@ def train(model, train_loader, validation_loader=None, config: dict = {}, infere
             epoch_loss /= train_epoch_len
             if tensorboard_writer:
                 tensorboard_writer.add_scalar("loss/train", epoch_loss, epoch)
-                img2tensorboard.plot_2d_or_3d_image(data=inputs, step=epoch, writer=tensorboard_writer, 
-                                                    index=0, max_channels=5, frame_dim=-1, max_frames=32, tag='train_input')
+                img2tensorboard.plot_2d_or_3d_image(
+                    data=inputs, step=epoch, writer=tensorboard_writer, index=0, max_channels=5, frame_dim=-1, max_frames=32, tag="train_input"
+                )
             aggregate_metrics_per_epoch("Train")
 
         if (epoch + 1) % validation_interval == 0:
@@ -205,7 +205,7 @@ def train(model, train_loader, validation_loader=None, config: dict = {}, infere
                     val_images, val_labels = val_batch_data["image"].to(device), val_batch_data["label"].to(device)
                     with no_grad():
                         if inferer:
-                            val_outputs = inferer(val_images,model)
+                            val_outputs = inferer(val_images, model)
                         else:
                             val_outputs = model(val_images)
                         loss = loss_function(val_outputs, val_labels)
@@ -261,13 +261,15 @@ def train(model, train_loader, validation_loader=None, config: dict = {}, infere
 
 
 class GracefulKiller:
-  kill_now = False
-  def __init__(self):
-    signal.signal(signal.SIGINT, self.exit_gracefully)
-    signal.signal(signal.SIGTERM, self.exit_gracefully)
+    kill_now = False
 
-  def exit_gracefully(self, *args):
-    self.kill_now = True
+    def __init__(self):
+        signal.signal(signal.SIGINT, self.exit_gracefully)
+        signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+    def exit_gracefully(self, *args):
+        self.kill_now = True
+
 
 class EarlyStopper:
     """

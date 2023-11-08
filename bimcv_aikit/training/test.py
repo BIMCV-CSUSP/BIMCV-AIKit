@@ -1,13 +1,12 @@
 import argparse
 
 import data_loader.data_loaders as module_data
-import torch
-from tqdm import tqdm
-
 import model.loss as module_loss
 import model.metric as module_metric
 import model.model as module_arch
+import torch
 from parse_config import ConfigParser
+from tqdm import tqdm
 
 
 def main(config):

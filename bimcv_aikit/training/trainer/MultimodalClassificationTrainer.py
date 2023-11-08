@@ -2,11 +2,11 @@ from time import sleep
 
 import numpy as np
 import torch
+from monai import visualize
 from torch.nn.functional import softmax
 from tqdm import tqdm
-
 from utils import inf_loop
-from monai import visualize
+
 from .ClassificationTrainer import ClassificationTrainer
 
 
@@ -19,7 +19,6 @@ class MultimodalClassificationTrainer(ClassificationTrainer):
         self, model, criterion, metric_ftns, optimizer, config, device, train_data_loader, valid_data_loader=None, lr_scheduler=None, len_epoch=None
     ):
         super().__init__(model, criterion, metric_ftns, optimizer, config, device, train_data_loader, valid_data_loader, lr_scheduler, len_epoch)
-
 
     def evaluate(self, data_loader):
         """
@@ -43,7 +42,11 @@ class MultimodalClassificationTrainer(ClassificationTrainer):
             with tqdm(data_loader, unit="batch") as tepoch:
                 for batch_data in tepoch:
                     tepoch.set_description("Progress")
-                    img_data, num_data, target = batch_data["image"].to(self.device), batch_data["numeric"].to(self.device), batch_data["label"].to(self.device)
+                    img_data, num_data, target = (
+                        batch_data["image"].to(self.device),
+                        batch_data["numeric"].to(self.device),
+                        batch_data["label"].to(self.device),
+                    )
                     labels.append(target)
                     outputs.append(self.model(img_data, num_data))
 
@@ -65,7 +68,6 @@ class MultimodalClassificationTrainer(ClassificationTrainer):
             metric_fct.reset()
         return predict_proba, metrics_dict
 
-
     def _train_epoch(self, epoch):
         """
         Training logic for an epoch
@@ -73,7 +75,7 @@ class MultimodalClassificationTrainer(ClassificationTrainer):
         :param epoch: Integer, current training epoch.
         :return: A log that contains average loss and metric in this epoch.
         """
-        
+
         self.model = self.model.to(self.device)
         self.model.train()
 
@@ -81,7 +83,11 @@ class MultimodalClassificationTrainer(ClassificationTrainer):
             epoch_loss = 0.0
             for batch_idx, batch_data in enumerate(tepoch):
                 tepoch.set_description(f"Train Epoch {epoch}")
-                img_data, num_data, target = batch_data["image"].to(self.device), batch_data["numeric"].to(self.device), batch_data["label"].to(self.device)
+                img_data, num_data, target = (
+                    batch_data["image"].to(self.device),
+                    batch_data["numeric"].to(self.device),
+                    batch_data["label"].to(self.device),
+                )
 
                 self.optimizer.zero_grad()
                 output = self.model(img_data, num_data)
@@ -98,8 +104,6 @@ class MultimodalClassificationTrainer(ClassificationTrainer):
                         tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict)
                     sleep(0.001)
 
-                
-
                 if batch_idx == self.len_epoch:  # iteration-based training
                     break
 
@@ -107,7 +111,7 @@ class MultimodalClassificationTrainer(ClassificationTrainer):
         # if epoch % 1 == 0:
         #     self.writer.add_image('input_image', img_data.cpu()[0,:,:,:,16])
         #     self.writer.add_video('input_video', img_data.cpu().transpose(4,1), global_step=epoch)
-        
+
         if not self.metric_ftns:
             tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1))
         else:
@@ -137,8 +141,11 @@ class MultimodalClassificationTrainer(ClassificationTrainer):
                 epoch_loss = 0.0
                 for batch_idx, batch_data in enumerate(tepoch):
                     tepoch.set_description(f"Validation Epoch {epoch}")
-                    img_data, num_data, target = batch_data["image"].to(self.device), batch_data["numeric"].to(self.device), batch_data["label"].to(self.device)
-
+                    img_data, num_data, target = (
+                        batch_data["image"].to(self.device),
+                        batch_data["numeric"].to(self.device),
+                        batch_data["label"].to(self.device),
+                    )
 
                     output = self.model(img_data, num_data)
                     loss = self.criterion(output, target)

@@ -2,11 +2,11 @@ from time import sleep
 
 import numpy as np
 import torch
+from monai import visualize
 from torch.nn.functional import softmax
 from tqdm import tqdm
-
 from utils import inf_loop
-from monai import visualize
+
 from .base_trainer import BaseTrainer
 
 
@@ -128,7 +128,7 @@ class ClassificationTrainer(BaseTrainer):
         :param epoch: Integer, current training epoch.
         :return: A log that contains average loss and metric in this epoch.
         """
-        
+
         self.model = self.model.to(self.device)
         self.model.train()
 
@@ -153,16 +153,14 @@ class ClassificationTrainer(BaseTrainer):
                         tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict)
                     sleep(0.001)
 
-                
-
                 if batch_idx == self.len_epoch:  # iteration-based training
                     break
 
         metrics_dict = self._aggregate_metrics_per_epoch("train", epoch)
         if epoch % 1 == 0:
-            self.writer.add_image('input_image', data.cpu()[0,:,:,:,16])
-            self.writer.add_video('input_video', data.cpu().transpose(4,1), global_step=epoch)
-        
+            self.writer.add_image("input_image", data.cpu()[0, :, :, :, 16])
+            self.writer.add_video("input_video", data.cpu().transpose(4, 1), global_step=epoch)
+
         if not self.metric_ftns:
             tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1))
         else:
@@ -205,7 +203,7 @@ class ClassificationTrainer(BaseTrainer):
                         else:
                             tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict)
                         sleep(0.001)
-                        self.writer.add_image('input', data.cpu())
+                        self.writer.add_image("input", data.cpu())
 
         # add histogram of model parameters to the tensorboard
         # for name, p in self.model.named_parameters():

@@ -1,6 +1,5 @@
-from torch import nn
 import torch
-
+from torch import nn
 
 
 class seg_and_class_loss_multitask(nn.Module):
@@ -23,10 +22,11 @@ class seg_and_class_loss_multitask(nn.Module):
         result (torch.Tensor): Weighted sum of segmentation and classification losses.
 
     Example:
-        loss_function = seg_and_class_loss_multitask(segmentation_loss=nn.CrossEntropyLoss(), 
+        loss_function = seg_and_class_loss_multitask(segmentation_loss=nn.CrossEntropyLoss(),
                                                     classification_loss=nn.BCEWithLogitsLoss())
     """
-    def __init__(self, segmentation_loss, classification_loss, weight_seg: float = 0.5, weight_class: float=0.5):
+
+    def __init__(self, segmentation_loss, classification_loss, weight_seg: float = 0.5, weight_class: float = 0.5):
         super(seg_and_class_loss_multitask, self).__init__()
         self.segloss = segmentation_loss
         self.classloss = classification_loss

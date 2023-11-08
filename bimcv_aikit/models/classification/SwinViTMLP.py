@@ -1,23 +1,20 @@
 from __future__ import annotations
 
-import torch.nn as nn
-import torch.nn.functional as F
+from collections.abc import Sequence
+
 import monai
 import torch
-
-
-from collections.abc import Sequence
+import torch.nn as nn
+import torch.nn.functional as F
 from monai.networks.blocks import UnetrBasicBlock
 from monai.networks.blocks.dynunet_block import UnetBasicBlock, get_conv_layer
 from monai.networks.nets.swin_unetr import SwinUNETR
 
 
-
-
 class SwinViTmlp(nn.Module):
     """
-    SwinViTmlp: A custom neural network module for image classification using a SwinUnetr backbone 
-    and additional fully connected layers for classification. 
+    SwinViTmlp: A custom neural network module for image classification using a SwinUnetr backbone
+    and additional fully connected layers for classification.
 
 
     Args:
@@ -33,7 +30,7 @@ class SwinViTmlp(nn.Module):
         model = SwinViTmlp(n_classes=3, img_size=(128, 128, 128), in_channels=1, pretrained_weights=None)
     """
 
-    def __init__(self, n_classes: int = 2, img_size: tuple = (96,96,96), in_channels: int = 1, pretrained_weights: str = None):
+    def __init__(self, n_classes: int = 2, img_size: tuple = (96, 96, 96), in_channels: int = 1, pretrained_weights: str = None):
         """
         Initialize the SwinViTmlp model with the given parameters.
         """
@@ -41,13 +38,7 @@ class SwinViTmlp(nn.Module):
 
         # Define Backbone (SwinUNETR)
         # The SwinUNETR model is used as a backbone to extract features from the input image.
-        backbone = monai.networks.nets.SwinUNETR(
-            img_size=img_size, 
-            in_channels=in_channels, 
-            out_channels=14, 
-            feature_size=48, 
-            use_v2=True
-        )
+        backbone = monai.networks.nets.SwinUNETR(img_size=img_size, in_channels=in_channels, out_channels=14, feature_size=48, use_v2=True)
 
         # Load pretrained weights if provided
         if pretrained_weights:
@@ -87,9 +78,6 @@ class SwinViTmlp(nn.Module):
         out = self.out(x)
 
         return out
-    
-
-
 
 
 class SwinViTMLP_v2(nn.Module):
@@ -290,12 +278,10 @@ class UnetDownBlock(nn.Module):
         return out
 
 
-
-
 class SwinViTMLP_v3(nn.Module):
     """
-    SwinViTmlp: A custom neural network module for image classification using a SwinUnetr backbone 
-    and additional fully connected layers for classification. 
+    SwinViTmlp: A custom neural network module for image classification using a SwinUnetr backbone
+    and additional fully connected layers for classification.
 
 
     Args:
@@ -311,28 +297,23 @@ class SwinViTMLP_v3(nn.Module):
         model = SwinViTmlp(n_classes=3, img_size=(128, 128, 128), in_channels=1, pretrained_weights=None)
     """
 
-    def __init__(self, n_classes: int = 2, img_size: tuple = (96,96,96), in_channels: int = 1, pretrained_weights: str = None):
+    def __init__(self, n_classes: int = 2, img_size: tuple = (96, 96, 96), in_channels: int = 1, pretrained_weights: str = None):
         """
         Initialize the SwinViTmlp model with the given parameters.
         """
         super().__init__()
 
-        feature_size=48
+        feature_size = 48
 
         # Define Backbone (SwinUNETR)
         # The SwinUNETR model is used as a backbone to extract features from the input image.
         self.base_model = monai.networks.nets.SwinUNETR(
-            img_size=img_size, 
-            in_channels=in_channels, 
-            out_channels=14, 
-            feature_size=feature_size, 
-            use_v2=True
+            img_size=img_size, in_channels=in_channels, out_channels=14, feature_size=feature_size, use_v2=True
         )
 
         # Load pretrained weights if provided
         if pretrained_weights:
             self.base_model.load_from(weights=torch.load(pretrained_weights))
-        
 
         self.encoder5 = UnetrBasicBlock(
             spatial_dims=3,
@@ -387,15 +368,11 @@ class SwinViTMLP_v3(nn.Module):
 
         out = torch.cat((out1, out2, out3, out4, out5), dim=1)
 
-        
         out = F.silu(self.fc(out))
-   
+
         out = self.out_class(out)
 
         return out
-
-
-
 
 
 def test():
@@ -408,4 +385,3 @@ def test():
 
 if __name__ == "__main__":
     test()
-

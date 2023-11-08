@@ -1,11 +1,12 @@
 import torch
 import torch.nn as nn
-from monai.networks.nets import ViT, EfficientNetBN
+from monai.networks.nets import EfficientNetBN, ViT
+
 
 class EfficientNetMultimodal(nn.Module):
     """
     EfficientNetMultimodal: An experimental architecture combining EfficientNet and a fully connected layer
-    for multimodal classification, designed for grayscale 3D volumes (e.g., structural brain MRIs) and a 1D array 
+    for multimodal classification, designed for grayscale 3D volumes (e.g., structural brain MRIs) and a 1D array
     of numerical values (e.g., clinical variables).
 
     The model uses an EfficientNet backbone for feature extraction and a fully connected layer for classification.
@@ -70,7 +71,6 @@ class EfficientNetMultimodal(nn.Module):
 
         # Concatenate the features with the input tensor
         x = torch.cat((x, x_num), dim=1)
-        
 
         # Pass the concatenated tensor through the fully connected layer
         x = self.fc(x)
@@ -90,6 +90,7 @@ def test():
     x_num = torch.randn(batch_size, in_num_features)
     output = model(x_img, x_num)
     assert output.shape == (batch_size, n_classes)
+
 
 if __name__ == "__main__":
     test()

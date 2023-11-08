@@ -5,11 +5,11 @@ import json
 
 import numpy as np
 import torch
-
-import bimcv_aikit.dataloaders as data_loader_module
 import trainer as module_trainer
 from parse_config import ConfigParser
 from utils import prepare_device
+
+import bimcv_aikit.dataloaders as data_loader_module
 
 # fix random seeds for reproducibility
 torch.backends.cudnn.deterministic = True
@@ -38,7 +38,9 @@ def main(config):
         model = torch.nn.DataParallel(model, device_ids=device_ids)
 
     # get function handles of loss and metrics
-    criterion = config.init_obj("loss", importlib.import_module(config["loss"]["module"]), **{"weight": torch.tensor(data_loader.class_weights).to(device)})
+    criterion = config.init_obj(
+        "loss", importlib.import_module(config["loss"]["module"]), **{"weight": torch.tensor(data_loader.class_weights).to(device)}
+    )
     metrics = {name: getattr(importlib.import_module(met["module"]), met["type"])(**met["args"]) for name, met in config["metrics"].items()}
 
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
@@ -68,7 +70,7 @@ def main(config):
     if valid_loader:
         val_predictions, val_results = trainer.evaluate(valid_loader)
 
-    del train_loader#, valid_loader
+    del train_loader  # , valid_loader
 
     test_loader = data_loader(config["data_loader"]["partitions"]["test"])
     if test_loader:

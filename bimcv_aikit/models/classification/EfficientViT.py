@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from monai.networks.nets import ViT, EfficientNetBN
+from monai.networks.nets import EfficientNetBN, ViT
 
 
 class EfficientViT(nn.Module):
@@ -52,16 +52,13 @@ class EfficientViT(nn.Module):
             EfficientNet.load_state_dict(torch.load(pretrained_weights_path))
 
         # Use certain layers from EfficientNet for feature extraction
-        layers = (
-            list(EfficientNet.children())[:3]
-            + list(EfficientNet._blocks.children())[:2]
-        )
+        layers = list(EfficientNet.children())[:3] + list(EfficientNet._blocks.children())[:2]
         self.features = nn.Sequential(*layers)
 
         # Define the Vision Transformer model for classification
         self.vit = ViT(
             in_channels=in_channels_vit,
-            img_size=(32, 32, 8), # Input image size // 4
+            img_size=(32, 32, 8),  # Input image size // 4
             patch_size=4,
             num_classes=n_classes,
             classification=True,
@@ -79,7 +76,7 @@ class EfficientViT(nn.Module):
         """
         # Extract features using EfficientNet
         x = self.features(x)
-        #print(x.shape)
+        # print(x.shape)
         # Pass the features through the ViT model and retrieve the classification logits
         x = self.vit(x)[0]
 

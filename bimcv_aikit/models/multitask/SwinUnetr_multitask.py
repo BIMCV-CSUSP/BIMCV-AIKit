@@ -25,7 +25,7 @@ class SwinUnetr_multitask(nn.Module):
     Example:
         model = SwinUnetr_multitask(n_classes=3, img_size=(128, 128, 128), in_channels=1, pretrained_weights=None)
     """
-    
+
     def __init__(
         self,
         n_classes: int = 2,
@@ -106,7 +106,7 @@ class SwinUnetr_multitask(nn.Module):
         out = self.model.decoder1(dec0, enc0)
         logits_seg = self.model.out(out)
 
-        return logits_seg, class_out 
+        return logits_seg, class_out
 
 
 def test():

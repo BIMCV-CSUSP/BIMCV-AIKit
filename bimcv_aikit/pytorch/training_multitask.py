@@ -1,12 +1,11 @@
-
 import signal
 from os.path import join
 from time import sleep, strftime, time
 
+from prettytable import PrettyTable
 from torch import load, no_grad, save, vstack
 from torch.nn.functional import softmax
 from tqdm import tqdm
-from prettytable import PrettyTable
 
 
 def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str = "cuda"):
@@ -22,7 +21,7 @@ def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str
     """
 
     def compute_metrics(predictions, labels):
-        predictions=list(predictions)
+        predictions = list(predictions)
         if not metrics:
             return
         metrics_dict = {}
@@ -34,10 +33,10 @@ def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str
             else:
                 print("\nConfusion Matrix")
                 print(metric_fct(predictions, labels).numpy())
-            
+
             metric_fct.reset()
         print(f"\nResults: \n{', '.join([name+':'+f'{value:.4f}' for name, value in metrics_dict.items()])}")
-        
+
         return predictions, metrics_dict
 
     if weights:
@@ -55,26 +54,24 @@ def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str
         for batch_data in tepoch:
             tepoch.set_description("Progress")
             batch_images = batch_data["image"].to(device)
-            
+
             if type(batch_data["label"]) is list:
-                    batch_labels=[]
-                    for lbl in batch_data["label"]:
-                        batch_labels.append(lbl.to(device))
+                batch_labels = []
+                for lbl in batch_data["label"]:
+                    batch_labels.append(lbl.to(device))
             else:
-                batch_labels=batch_data["label"].to(device)
+                batch_labels = batch_data["label"].to(device)
             with no_grad():
                 labels0.append(batch_labels[0])
                 labels1.append(batch_labels[1])
-                
-                predicts=model(batch_images)
+
+                predicts = model(batch_images)
                 outputs0.append(predicts[0])
                 outputs1.append(predicts[1])
-    
-    
 
-    predictions, results = compute_metrics([vstack(outputs0),vstack(outputs1)], [vstack(labels0),vstack(labels1)])
+    predictions, results = compute_metrics([vstack(outputs0), vstack(outputs1)], [vstack(labels0), vstack(labels1)])
 
-    return (predictions[0].cpu().numpy(),predictions[1].cpu().numpy()), results
+    return (predictions[0].cpu().numpy(), predictions[1].cpu().numpy()), results
 
 
 def train(model, train_loader, validation_loader=None, config: dict = {}):
@@ -127,34 +124,34 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
     verbose = config["verbose"] if "verbose" in config else True
 
     killer = GracefulKiller()
-    
+
     def aggregate_metrics_per_epoch(stage):
         if not metrics:
-            table.add_column("Metric",["Loss"])
-            table.add_column(stage,[epoch_loss])
+            table.add_column("Metric", ["Loss"])
+            table.add_column(stage, [epoch_loss])
             tepoch.set_postfix(loss=epoch_loss)
             sleep(0.001)
             return
         metrics_dict = {}
-        values=[]
+        values = []
         for name, metric_fct in metrics.items():
             metrics_dict[name] = metric_fct.compute()
             if tensorboard_writer:
                 tensorboard_writer.add_scalar(f"{name}/{stage.lower()}", metrics_dict[name], epoch)
             metric_fct.reset()
             values.append(f"{metrics_dict[name]:.4f}")
-        
-        metrics_col=["Loss"]+list(metrics.keys())
-        values_col=[f"{epoch_loss:.4f}"]+values
-        if stage=="Train":
-            table.add_column("Metric",metrics_col)
-        table.add_column(stage,values_col)
-            
+
+        metrics_col = ["Loss"] + list(metrics.keys())
+        values_col = [f"{epoch_loss:.4f}"] + values
+        if stage == "Train":
+            table.add_column("Metric", metrics_col)
+        table.add_column(stage, values_col)
+
         tepoch.set_postfix(loss=epoch_loss, metrics=metrics_dict)
         sleep(0.001)
 
     def compute_metrics(predictions, labels):
-        predictions=list(predictions)
+        predictions = list(predictions)
         if not metrics:
             tepoch.set_postfix(loss=loss.item())
             sleep(0.001)
@@ -177,28 +174,26 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
     best_loss_epoch = -1
 
     for epoch in range(epochs):
-        
         model.train(True)
         start_time = time()
 
         print("-" * 10)
         print(f"Epoch {epoch + 1}/{epochs}")
-                
+
         table = PrettyTable()
-        table.title=f"Performance epoch {epoch + 1}"
+        table.title = f"Performance epoch {epoch + 1}"
 
         epoch_loss = 0.0
         with tqdm(train_loader, unit="batch") as tepoch:
             for batch_data in tepoch:
-                
                 tepoch.set_description(f"Training data")
                 inputs = batch_data["image"].to(device)
                 if type(batch_data["label"]) is list:
-                    labels=[]
+                    labels = []
                     for lbl in batch_data["label"]:
                         labels.append(lbl.to(device))
                 else:
-                    labels=batch_data["label"].to(device)
+                    labels = batch_data["label"].to(device)
                 optimizer.zero_grad()
                 outputs = model(inputs)
                 loss = loss_function(outputs, labels)
@@ -222,13 +217,12 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
                     tepoch.set_description(f"Validation data")
                     val_images = val_batch_data["image"].to(device)
                     if type(val_batch_data["label"]) is list:
-                        val_labels=[]
+                        val_labels = []
                         for lbl in val_batch_data["label"]:
                             val_labels.append(lbl.to(device))
                     else:
-                        labels=val_batch_data["label"].to(device)
-                        
-                        
+                        labels = val_batch_data["label"].to(device)
+
                     with no_grad():
                         val_outputs = model(val_images)
                         loss = loss_function(val_outputs, val_labels)
@@ -270,7 +264,7 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
                 save(model.state_dict(), join(save_weights_dir, f"{experiment_name}_{epoch+1}.pth"))
                 if verbose:
                     print(f"Saved checkpoint at epoch {epoch+1}")
-        
+
         if killer.kill_now:
             print(f"Received SIGTERM or SIGINT. Terminating training... \nLowest validation loss value: {best_loss:.4f} at epoch: {best_loss_epoch}.")
             break
@@ -284,13 +278,15 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
 
 
 class GracefulKiller:
-  kill_now = False
-  def __init__(self):
-    signal.signal(signal.SIGINT, self.exit_gracefully)
-    signal.signal(signal.SIGTERM, self.exit_gracefully)
+    kill_now = False
 
-  def exit_gracefully(self, *args):
-    self.kill_now = True
+    def __init__(self):
+        signal.signal(signal.SIGINT, self.exit_gracefully)
+        signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+    def exit_gracefully(self, *args):
+        self.kill_now = True
+
 
 class EarlyStopper:
     """

@@ -31,7 +31,7 @@ class ConfigParser:
         if run_id is None:  # use timestamp as default run-id
             run_id = datetime.now().strftime(r"%d-%b-%Y-%H:%M:%S")
         self._save_dir = save_dir / task_name / exper_name / run_id / "models"
-        self._log_dir = save_dir / task_name / exper_name / run_id 
+        self._log_dir = save_dir / task_name / exper_name / run_id
 
         # make directory for saving checkpoints and log.
         exist_ok = run_id == ""

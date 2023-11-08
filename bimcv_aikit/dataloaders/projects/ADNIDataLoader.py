@@ -1,11 +1,11 @@
+from monai import transforms
+from monai.data import CacheDataset, DataLoader
 from numpy import array, float32, unique
 from pandas import read_csv
 from sklearn.utils.class_weight import compute_class_weight
 from torch import as_tensor
 from torch.nn.functional import one_hot
 
-from monai.data import CacheDataset, DataLoader
-from monai import transforms
 from bimcv_aikit.monai.transforms import DeleteBlackSlices
 
 
@@ -14,7 +14,16 @@ class ADNIDataLoader:
     A data loader for the ADNI dataset.
     """
 
-    def __init__(self, path: str, sep: str = ",", classes: list = ["CN", "AD"], map_labels_dict: dict = None, test_run: bool = False, input_shape: str = "(96,96,96)", config: dict = {}):
+    def __init__(
+        self,
+        path: str,
+        sep: str = ",",
+        classes: list = ["CN", "AD"],
+        map_labels_dict: dict = None,
+        test_run: bool = False,
+        input_shape: str = "(96,96,96)",
+        config: dict = {},
+    ):
         """
         Initializes an instance of the ADNIDataLoader class.
 
@@ -40,9 +49,9 @@ class ADNIDataLoader:
         df["onehot"] = df["intLabel"].apply(onehot)
         self.groupby = df.groupby("Partition")
         self._class_weights = compute_class_weight(
-            class_weight="balanced", 
-            classes=unique(self.groupby.get_group("train")["intLabel"].values), 
-            y=self.groupby.get_group("train")["intLabel"].values
+            class_weight="balanced",
+            classes=unique(self.groupby.get_group("train")["intLabel"].values),
+            y=self.groupby.get_group("train")["intLabel"].values,
         )
         self.transforms = transforms.Compose(
             [
@@ -59,23 +68,23 @@ class ADNIDataLoader:
         self.config_args = config
 
     def __call__(self, partition: str):
-            """
-            Returns a DataLoader object for the specified partition.
+        """
+        Returns a DataLoader object for the specified partition.
 
-            Args:
-                partition (str): The partition to load data for (e.g. "train", "val", or "test").
+        Args:
+            partition (str): The partition to load data for (e.g. "train", "val", or "test").
 
-            Returns:
-                DataLoader: A PyTorch DataLoader object containing the specified partition's data.
-            """
-            data = [
-                {"image": img_path, "label": label}
-                for img_path, label in zip(self.groupby.get_group(partition)["Path"].values, self.groupby.get_group(partition)["onehot"].values)
-            ]
-            if self.test_run:
-                data = data[:16]
-            dataset = CacheDataset(data=data, transform=self.transforms, num_workers=7)
-            return DataLoader(dataset, **self.config_args)
+        Returns:
+            DataLoader: A PyTorch DataLoader object containing the specified partition's data.
+        """
+        data = [
+            {"image": img_path, "label": label}
+            for img_path, label in zip(self.groupby.get_group(partition)["Path"].values, self.groupby.get_group(partition)["onehot"].values)
+        ]
+        if self.test_run:
+            data = data[:16]
+        dataset = CacheDataset(data=data, transform=self.transforms, num_workers=7)
+        return DataLoader(dataset, **self.config_args)
 
     @property
     def class_weights(self):
@@ -83,13 +92,23 @@ class ADNIDataLoader:
         Returns the class weights for the dataset.
         """
         return self._class_weights
-    
+
+
 class ADNIMultimodalDataLoader(ADNIDataLoader):
     """
     A data loader for the ADNI dataset that loads both MRI images and clinical variables.
     """
 
-    def __init__(self, path: str, sep: str = ",", classes: list = ["CN", "AD"], map_labels_dict: dict = None, test_run: bool = False, input_shape: str = "(96,96,96)", config: dict = {}):
+    def __init__(
+        self,
+        path: str,
+        sep: str = ",",
+        classes: list = ["CN", "AD"],
+        map_labels_dict: dict = None,
+        test_run: bool = False,
+        input_shape: str = "(96,96,96)",
+        config: dict = {},
+    ):
         """
         Initializes an instance of the ADNIDataLoader class.
 
@@ -103,7 +122,33 @@ class ADNIMultimodalDataLoader(ADNIDataLoader):
             config (dict, optional): A dictionary of configuration options. Defaults to {}.
         """
         super().__init__(path, sep, classes, map_labels_dict, test_run, input_shape, config)
-        self.clinical_cols = ["PTGENDER","APOE4","Ventricles","Hippocampus","WholeBrain","Entorhinal","Fusiform","MidTemp","ICV","AGE","CDRSB","ADAS11","ADAS13","ADASQ4","MMSE","RAVLT_immediate","RAVLT_learning","RAVLT_forgetting","RAVLT_perc_forgetting","FAQ","MOCA","LDELTOTAL","TRABSCOR","mPACCdigit","mPACCtrailsB"]
+        self.clinical_cols = [
+            "PTGENDER",
+            "APOE4",
+            "Ventricles",
+            "Hippocampus",
+            "WholeBrain",
+            "Entorhinal",
+            "Fusiform",
+            "MidTemp",
+            "ICV",
+            "AGE",
+            "CDRSB",
+            "ADAS11",
+            "ADAS13",
+            "ADASQ4",
+            "MMSE",
+            "RAVLT_immediate",
+            "RAVLT_learning",
+            "RAVLT_forgetting",
+            "RAVLT_perc_forgetting",
+            "FAQ",
+            "MOCA",
+            "LDELTOTAL",
+            "TRABSCOR",
+            "mPACCdigit",
+            "mPACCtrailsB",
+        ]
         self.transforms = transforms.Compose(
             [
                 transforms.LoadImaged(keys=["image"], reader="NibabelReader", ensure_channel_first=True, image_only=False),
@@ -117,23 +162,20 @@ class ADNIMultimodalDataLoader(ADNIDataLoader):
         )
 
     def __call__(self, partition: str):
-            """
-            Returns a DataLoader object for the specified partition.
+        """
+        Returns a DataLoader object for the specified partition.
 
-            Args:
-                partition (str): The partition to load data for (either "train", "val", or "test").
+        Args:
+            partition (str): The partition to load data for (either "train", "val", or "test").
 
-            Returns:
-                DataLoader: A PyTorch DataLoader object containing the specified partition's data.
-            """
-            paths = self.groupby.get_group(partition)["Path"].values
-            labels = self.groupby.get_group(partition)["onehot"].values
-            clinical_variables = array(self.groupby.get_group(partition)[self.clinical_cols].values, dtype=float32)
-            data = [
-                {"image": img_path, "label": label, "numeric": clinical}
-                for img_path, label, clinical in zip(paths, labels, clinical_variables)
-            ]
-            if self.test_run:
-                data = data[:16]
-            dataset = CacheDataset(data=data, transform=self.transforms, num_workers=7)
-            return DataLoader(dataset, **self.config_args)
+        Returns:
+            DataLoader: A PyTorch DataLoader object containing the specified partition's data.
+        """
+        paths = self.groupby.get_group(partition)["Path"].values
+        labels = self.groupby.get_group(partition)["onehot"].values
+        clinical_variables = array(self.groupby.get_group(partition)[self.clinical_cols].values, dtype=float32)
+        data = [{"image": img_path, "label": label, "numeric": clinical} for img_path, label, clinical in zip(paths, labels, clinical_variables)]
+        if self.test_run:
+            data = data[:16]
+        dataset = CacheDataset(data=data, transform=self.transforms, num_workers=7)
+        return DataLoader(dataset, **self.config_args)

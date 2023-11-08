@@ -31,7 +31,7 @@ class DeleteBlackSlices(MapTransform):
         mask_axis2 = (std_per_slice_axis2 > self.threshold * img_std) & (mean_per_slice_axis2 > self.threshold * img_mean)
         mask_axis3 = (std_per_slice_axis3 > self.threshold * img_std) & (mean_per_slice_axis3 > self.threshold * img_mean)
         data = data[:, mask_axis1, :, :]
-        data = data[:,:, mask_axis2, :]
+        data = data[:, :, mask_axis2, :]
         x[key] = data[:, :, :, mask_axis3]
         return x
 
@@ -57,13 +57,12 @@ class Labels3Dto2D(MapTransform):
             return [{"image": slice} for slice in img]
 
 
-
 class ConcatLabels_Multitask(MapTransform):
     """
-    ConcatLabels_Multitask: A transformation class designed to concatenate labels from multiple tasks 
+    ConcatLabels_Multitask: A transformation class designed to concatenate labels from multiple tasks
     into a single tuple, which can be useful in multitasking scenarios.
 
-    It's a custom MapTransform that takes multiple keys as input and combines the data corresponding 
+    It's a custom MapTransform that takes multiple keys as input and combines the data corresponding
     to these keys into a single tuple, then associates this tuple with a new key name.
 
     Args:
@@ -84,11 +83,11 @@ class ConcatLabels_Multitask(MapTransform):
         }
         transformed_data = transform(data_dict)
     """
-    
-    def __init__(self, keys, name: str = 'label'):
+
+    def __init__(self, keys, name: str = "label"):
         MapTransform.__init__(self, keys)
         self.name = name
-    
+
     def __call__(self, x):
         data_list = []
         for key in self.keys:

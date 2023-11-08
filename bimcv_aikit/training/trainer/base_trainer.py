@@ -3,10 +3,9 @@ import sys
 from abc import abstractmethod
 
 import torch
+from logger import TensorboardWriter
 from numpy import inf
 from prettytable import PrettyTable
-
-from logger import TensorboardWriter
 
 
 class BaseTrainer:
@@ -81,7 +80,7 @@ class BaseTrainer:
             val_values = [f"{value:.4f}" for key, value in log.items() if ("val" in key and key != "epoch")]
             table.add_column("Metrics", metrics)
             table.add_column("Train", train_values)
-            if len(val_values)>0:
+            if len(val_values) > 0:
                 table.add_column(" Validation", val_values)
             self.logger.info(table)
 
@@ -125,12 +124,12 @@ class BaseTrainer:
         """
         arch = type(self.model).__name__
         state = {
-            #"arch": arch,
+            # "arch": arch,
             "epoch": epoch,
             "state_dict": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "monitor_best": self.mnt_best,
-            #"config": self.config,
+            # "config": self.config,
         }
         if epoch % self.save_period == 0:
             filename = str(self.checkpoint_dir / "checkpoint-epoch{}.pth".format(epoch))
