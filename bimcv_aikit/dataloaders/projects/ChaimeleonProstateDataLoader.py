@@ -38,6 +38,12 @@ class ChaimeleonProstateDataLoader:
                 ),
                 transforms.ScaleIntensityd(keys='image', minv=0.0, maxv=1.0),
                 transforms.NormalizeIntensityd(keys='image'),
+                transforms.RandRotate90d(keys=['image'],spatial_axes=[0,1],prob=rand_prob),
+                transforms.RandZoomd(keys=['image'],min_zoom=0.9,max_zoom=1.1,mode='area',prob=rand_prob),
+                transforms.RandGaussianNoised(keys=["image"],mean=0.1,std=0.25,prob=rand_prob),
+                transforms.RandShiftIntensityd(keys=["image"],offsets=0.2,prob=rand_prob),
+                transforms.RandGaussianSharpend(keys=['image'],sigma1_x=[0.5, 1.0],sigma1_y=[0.5, 1.0],sigma1_z=[0.5, 1.0],sigma2_x=[0.5, 1.0],sigma2_y=[0.5, 1.0],sigma2_z=[0.5, 1.0],alpha=[10.0,30.0],prob=rand_prob),
+                transforms.RandAdjustContrastd(keys=['image'],gamma=2.0,prob=rand_prob),
                 transforms.ToTensord(keys=['image','label'])
             ]
         )

@@ -6,7 +6,7 @@ from torch.nn.functional import softmax
 from tqdm import tqdm
 
 from utils import inf_loop
-
+from monai import visualize
 from .base_trainer import BaseTrainer
 
 
@@ -153,13 +153,16 @@ class ClassificationTrainer(BaseTrainer):
                         tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict)
                     sleep(0.001)
 
-                #     self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
+                
 
                 if batch_idx == self.len_epoch:  # iteration-based training
                     break
 
         metrics_dict = self._aggregate_metrics_per_epoch("train", epoch)
-
+        if epoch % 1 == 0:
+            self.writer.add_image('input_image', data.cpu()[0,:,:,:,16])
+            self.writer.add_video('input_video', data.cpu().transpose(4,1), global_step=epoch)
+        
         if not self.metric_ftns:
             tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1))
         else:
@@ -202,7 +205,7 @@ class ClassificationTrainer(BaseTrainer):
                         else:
                             tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict)
                         sleep(0.001)
-                    # self.writer.add_image('input', make_grid(data.cpu(), nrow=8, normalize=True))
+                        self.writer.add_image('input', data.cpu())
 
         # add histogram of model parameters to the tensorboard
         # for name, p in self.model.named_parameters():

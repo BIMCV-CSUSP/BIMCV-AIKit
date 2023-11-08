@@ -42,6 +42,7 @@ class TensorboardWriter:
             "add_histogram",
             "add_pr_curve",
             "add_embedding",
+            "add_video"
         }
         self.tag_mode_exceptions = {"add_histogram", "add_embedding"}
         self.timer = datetime.now()
