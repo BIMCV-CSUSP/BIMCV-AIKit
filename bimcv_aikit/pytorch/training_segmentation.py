@@ -2,11 +2,12 @@ import signal
 from os.path import join
 from time import sleep, strftime, time
 
-from monai.visualize import img2tensorboard
 from prettytable import PrettyTable
 from torch import load, no_grad, save, vstack
 from torch.nn.functional import softmax
 from tqdm import tqdm
+
+from monai.visualize import img2tensorboard
 
 
 def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str = "cuda", inferer=None):

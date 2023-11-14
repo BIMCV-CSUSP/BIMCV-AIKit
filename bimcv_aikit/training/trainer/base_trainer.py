@@ -13,7 +13,7 @@ class BaseTrainer:
     Base class for all trainers
     """
 
-    def __init__(self, model, criterion, metric_ftns, optimizer, config):
+    def __init__(self, model, criterion, metric_ftns, optimizer, config, fold=""):
         self.config = config
         self.logger = config.get_logger("trainer", config["trainer"]["verbosity"])
 
@@ -42,7 +42,8 @@ class BaseTrainer:
 
         self.start_epoch = 1
 
-        self.checkpoint_dir = config.save_dir
+        self.checkpoint_dir = config.save_dir / fold if fold != "" else config.save_dir
+        self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
         # setup visualization writer instance
         self.writer = TensorboardWriter(config.log_dir, self.logger, cfg_trainer["tensorboard"])

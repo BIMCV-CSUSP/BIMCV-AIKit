@@ -2,10 +2,11 @@ from time import sleep
 
 import numpy as np
 import torch
-from monai import visualize
 from torch.nn.functional import softmax
 from tqdm import tqdm
 from utils import inf_loop
+
+from monai import visualize
 
 from .ClassificationTrainer import ClassificationTrainer
 
@@ -16,9 +17,22 @@ class MultimodalClassificationTrainer(ClassificationTrainer):
     """
 
     def __init__(
-        self, model, criterion, metric_ftns, optimizer, config, device, train_data_loader, valid_data_loader=None, lr_scheduler=None, len_epoch=None
+        self,
+        model,
+        criterion,
+        metric_ftns,
+        optimizer,
+        config,
+        device,
+        train_data_loader,
+        fold="",
+        valid_data_loader=None,
+        lr_scheduler=None,
+        len_epoch=None,
     ):
-        super().__init__(model, criterion, metric_ftns, optimizer, config, device, train_data_loader, valid_data_loader, lr_scheduler, len_epoch)
+        super().__init__(
+            model, criterion, metric_ftns, optimizer, config, device, train_data_loader, fold, valid_data_loader, lr_scheduler, len_epoch
+        )
 
     def evaluate(self, data_loader):
         """
@@ -109,8 +123,8 @@ class MultimodalClassificationTrainer(ClassificationTrainer):
 
         metrics_dict = self._aggregate_metrics_per_epoch("train", epoch)
         if epoch % 5 == 0:
-            self.writer.add_image('input_image', img_data.cpu()[0,:,:,:,16],global_step=epoch)
-            #self.writer.add_video('input_video', img_data.cpu().transpose(4,1), global_step=epoch)
+            self.writer.add_image("input_image", img_data.cpu()[0, :, :, :, 16], global_step=epoch)
+            # self.writer.add_video('input_video', img_data.cpu().transpose(4,1), global_step=epoch)
 
         if not self.metric_ftns:
             tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1))
@@ -158,7 +172,7 @@ class MultimodalClassificationTrainer(ClassificationTrainer):
                         else:
                             tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict)
                         sleep(0.001)
-                        #self.writer.add_image('input', img_data.cpu())
+                        # self.writer.add_image('input', img_data.cpu())
 
         # add histogram of model parameters to the tensorboard
         # for name, p in self.model.named_parameters():

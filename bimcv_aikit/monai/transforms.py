@@ -1,5 +1,6 @@
-from monai.transforms import MapTransform
 from numpy import ix_, mean, std
+
+from monai.transforms import MapTransform
 
 
 class DeleteBlackSlices(MapTransform):

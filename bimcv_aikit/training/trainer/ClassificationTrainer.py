@@ -2,10 +2,11 @@ from time import sleep
 
 import numpy as np
 import torch
-from monai import visualize
 from torch.nn.functional import softmax
 from tqdm import tqdm
 from utils import inf_loop
+
+from monai import visualize
 
 from .base_trainer import BaseTrainer
 
@@ -16,9 +17,20 @@ class ClassificationTrainer(BaseTrainer):
     """
 
     def __init__(
-        self, model, criterion, metric_ftns, optimizer, config, device, train_data_loader, valid_data_loader=None, lr_scheduler=None, len_epoch=None
+        self,
+        model,
+        criterion,
+        metric_ftns,
+        optimizer,
+        config,
+        device,
+        train_data_loader,
+        fold="",
+        valid_data_loader=None,
+        lr_scheduler=None,
+        len_epoch=None,
     ):
-        super().__init__(model, criterion, metric_ftns, optimizer, config)
+        super().__init__(model, criterion, metric_ftns, optimizer, config, fold)
         self.config = config
         self.device = device
         self.data_loader = train_data_loader

@@ -1,5 +1,3 @@
-from monai import transforms
-from monai.data import CacheDataset, DataLoader
 from numpy import array, float32, unique
 from pandas import read_csv
 from sklearn.utils.class_weight import compute_class_weight
@@ -7,6 +5,8 @@ from torch import as_tensor
 from torch.nn.functional import one_hot
 
 from bimcv_aikit.monai.transforms import DeleteBlackSlices
+from monai import transforms
+from monai.data import CacheDataset, DataLoader
 
 
 class ADNIDataLoader:
@@ -22,6 +22,7 @@ class ADNIDataLoader:
         map_labels_dict: dict = None,
         test_run: bool = False,
         input_shape: str = "(96,96,96)",
+        partition_column: str = "Partition",
         config: dict = {},
     ):
         """
@@ -34,6 +35,7 @@ class ADNIDataLoader:
             map_labels_dict (dict, optional): Dictionary mapping class names to integer labels. If provided, only the classes in the dictionary will be included in the data. Defaults to None.
             test_run (bool, optional): If True, only a small subset of the data will be loaded for testing purposes. Defaults to False.
             input_shape (str, optional): Spatial size of the input images. Defaults to "(96,96,96)".
+            partition_column (str, optional): The name of the column in the file that contains the partition. Defalts to Partition".
             config (dict, optional): Additional configuration options. Defaults to {}.
         """
         df = read_csv(path, sep=sep)
@@ -47,7 +49,7 @@ class ADNIDataLoader:
         n_classes = len(unique(df["intLabel"].values))
         onehot = lambda x: one_hot(as_tensor(x), num_classes=n_classes).float()
         df["onehot"] = df["intLabel"].apply(onehot)
-        self.groupby = df.groupby("Partition")
+        self.groupby = df.groupby(partition_column)
         self._class_weights = compute_class_weight(
             class_weight="balanced",
             classes=unique(self.groupby.get_group("train")["intLabel"].values),
@@ -107,6 +109,7 @@ class ADNIMultimodalDataLoader(ADNIDataLoader):
         map_labels_dict: dict = None,
         test_run: bool = False,
         input_shape: str = "(96,96,96)",
+        partition_column: str = "Partition",
         config: dict = {},
     ):
         """
@@ -119,9 +122,10 @@ class ADNIMultimodalDataLoader(ADNIDataLoader):
             map_labels_dict (dict, optional): A dictionary mapping original labels to new labels. Defaults to None.
             test_run (bool, optional): Whether to run the data loader in test mode. Defaults to False.
             input_shape (str, optional): The shape of the input data. Defaults to "(96,96,96)".
+            partition_column (str, optional): The name of the column in the file that contains the partition. Defalts to Partition".
             config (dict, optional): A dictionary of configuration options. Defaults to {}.
         """
-        super().__init__(path, sep, classes, map_labels_dict, test_run, input_shape, config)
+        super().__init__(path, sep, classes, map_labels_dict, test_run, input_shape, partition_column, config)
         self.clinical_cols = [
             "PTGENDER",
             "APOE4",
