@@ -10,6 +10,18 @@
     },
     "data_loader": {
         "type": "MnistDataLoader",
+        "partitions": {
+            "folds": [
+                "Fold 0",
+                "Fold 1",
+                "Fold 2",
+                "Fold 3",
+                "Fold 4"
+            ],
+            "train": "train",
+            "val": "dev",
+            "test": "test"
+        },
         "args": {
             "data_dir": "data/",
             "batch_size": 128,
@@ -26,7 +38,11 @@
             "amsgrad": true
         }
     },
-    "loss": "nll_loss",
+    "loss": {
+        "module": "torch.nn",
+        "type": "CrossEntropyLoss",
+        "args": {}
+    },
     "metrics": {
         "accuracy": {
             "module": "torchmetrics",
