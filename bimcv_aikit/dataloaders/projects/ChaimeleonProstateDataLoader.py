@@ -29,7 +29,7 @@ class ChaimeleonProstateDataLoader:
 
         classes = np.vstack([x["label"] for x in self.data])
 
-        self._class_weights = [2.0, 1.0]  # compute_class_weight(class_weight="balanced", classes=[0, 1], y=np.argmax(classes, axis=0))
+        self._class_weights = compute_class_weight(class_weight="balanced", classes=[0, 1], y=np.argmax(classes, axis=0))
         print(self._class_weights)
         self.train_transforms = transforms.Compose(
             [
@@ -39,13 +39,13 @@ class ChaimeleonProstateDataLoader:
                 transforms.Resized(
                     keys="image",
                     spatial_size=eval(input_shape),
-                    mode=("trilinear"),
+                    mode=("area"),
                 ),
                 transforms.NormalizeIntensityd(keys="image"),
                 transforms.ScaleIntensityd(keys="image", minv=0.0, maxv=1.0),
                 transforms.DataStatsd(keys="image"),
-                # transforms.RandRotate90d(keys=["image"], spatial_axes=[0, 1], prob=rand_prob, max_k=3),
-                # transforms.RandZoomd(keys=["image"], min_zoom=0.9, max_zoom=1.1, mode="area", prob=rand_prob),
+                transforms.RandRotate90d(keys=["image"], spatial_axes=[0, 1], prob=rand_prob, max_k=3),
+                #transforms.RandZoomd(keys=["image"], min_zoom=0.9, max_zoom=1.1, mode="area", prob=rand_prob),
                 # transforms.RandGaussianNoised(keys=["image"], mean=0.1, std=0.25, prob=rand_prob),
                 # transforms.RandShiftIntensityd(keys=["image"], offsets=0.2, prob=rand_prob),
                 # transforms.RandGaussianSharpend(
