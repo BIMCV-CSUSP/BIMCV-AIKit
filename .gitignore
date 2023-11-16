@@ -162,3 +162,4 @@ cython_debug/
 
 data
 saved
+bimcv_aikit/pretrained_models/model_swinvit.pt
