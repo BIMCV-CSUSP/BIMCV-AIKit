@@ -69,5 +69,5 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Contact
 
-- [Jesús Alejandro Alzate Grizales](https://github.com/jesusalzate) - Data Scientist
-- [Alejandro Mora Rubio](https://github.com/MoraRubio) - Data Scientist
+- [Jesús Alejandro Alzate-Grisales](https://github.com/jesusalzate) - Data Scientist
+- [Alejandro Mora-Rubio](https://github.com/MoraRubio) - Data Scientist
