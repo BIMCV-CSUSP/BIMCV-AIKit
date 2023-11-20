@@ -3,7 +3,7 @@
 ## Training module usage
 
 The code in this repo is an MNIST example of the template.
-Try `python train.py -c config.json` to run code.
+Try `bimcv_train -c config.json` to run code.
 
 ### Config file format
 
@@ -107,12 +107,16 @@ Add addional configurations if you need.
 Modify the configurations in `.json` config files, then run:
 
 ```python
-python train.py --config config.json
+bimcv_train -c config.json
+```
+or 
+```python
+python -m bimcv_aikit.training.train -c config.json
 ```
 
 ## TODO
 
-- [ ] Enable training from pip package installation
+- [ x ] Enable training from pip package installation
 
 ## Acknowledgements
 
