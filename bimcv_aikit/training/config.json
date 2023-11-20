@@ -19,7 +19,7 @@
                 "Fold 4"
             ],
             "train": "train",
-            "val": "dev",
+            "val": "val",
             "test": "test"
         },
         "args": {
@@ -71,12 +71,13 @@
         }
     },
     "trainer": {
+        "type": "ClassificationTrainer",
         "epochs": 100,
         "save_dir": "saved/",
         "save_period": null,
         "verbosity": 2,
         "monitor": "min val_loss",
         "early_stop": 10,
-        "tensorboard": true
+        "tensorboard": false
     }
 }

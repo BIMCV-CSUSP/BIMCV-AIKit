@@ -1,8 +1,7 @@
+import monai
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-import monai
 
 
 class SwinUnetr_multitask(nn.Module):

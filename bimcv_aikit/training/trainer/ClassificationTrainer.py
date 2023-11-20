@@ -2,12 +2,11 @@ from time import sleep
 
 import numpy as np
 import torch
+from monai import visualize
 from torch.nn.functional import softmax
 from tqdm import tqdm
-from utils import inf_loop
 
-from monai import visualize
-
+from ..utils import inf_loop
 from .base_trainer import BaseTrainer
 
 
@@ -169,9 +168,9 @@ class ClassificationTrainer(BaseTrainer):
                     break
 
         metrics_dict = self._aggregate_metrics_per_epoch("train", epoch)
-        if epoch % 1 == 0:
-            self.writer.add_image("input_image", data.cpu()[0, :, :, :, 16])
-            self.writer.add_video("input_video", data.cpu().transpose(4, 1), global_step=epoch)
+        # if epoch % 1 == 0:
+        #     self.writer.add_image("input_image", data.cpu()[0, :, :, :, 16])
+        #     self.writer.add_video("input_video", data.cpu().transpose(4, 1), global_step=epoch)
 
         if not self.metric_ftns:
             tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1))

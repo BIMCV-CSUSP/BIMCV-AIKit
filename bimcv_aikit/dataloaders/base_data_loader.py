@@ -60,3 +60,13 @@ class BaseDataLoader(DataLoader):
             return None
         else:
             return DataLoader(sampler=self.valid_sampler, **self.init_kwargs)
+
+    def __call__(self, partition: str):
+        if partition == "train":
+            return self
+        if partition == "val":
+            if self.valid_sampler is None:
+                return None
+            else:
+                return DataLoader(sampler=self.valid_sampler, **self.init_kwargs)
+        return None
