@@ -8,7 +8,8 @@ import torch
 import trainer as module_trainer
 from parse_config import ConfigParser
 from utils import prepare_device
-
+from monai.transforms import Compose
+from bimcv_aikit.metrics.segmentation.metrics_segmentation import metrics_segmentation_constructor_monai
 import bimcv_aikit.dataloaders as data_loader_module
 
 # fix random seeds for reproducibility
@@ -38,11 +39,13 @@ def main(config):
         model = torch.nn.DataParallel(model, device_ids=device_ids)
 
     # get function handles of loss and metrics
-    criterion = config.init_obj(
-        "loss", importlib.import_module(config["loss"]["module"]), **{"weight": torch.tensor(data_loader.class_weights).to(device)}
-    )
-    metrics = {name: getattr(importlib.import_module(met["module"]), met["type"])(**met["args"]) for name, met in config["metrics"].items()}
-
+    if data_loader.class_weights is None:
+        criterion = config.init_obj("loss", importlib.import_module(config["loss"]["module"]))
+    else:
+        criterion = config.init_obj(
+            "loss", importlib.import_module(config["loss"]["module"]), **{"weight": torch.tensor(data_loader.class_weights).to(device)}
+        )
+    
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = config.init_obj("optimizer", torch.optim, trainable_params)
@@ -50,6 +53,44 @@ def main(config):
 
     train_loader = data_loader(config["data_loader"]["partitions"]["train"])
     valid_loader = data_loader(config["data_loader"]["partitions"]["val"])
+    
+    if config["inferer"] is not None:
+        module_inferer = importlib.import_module(config["inferer"]["module"])
+        inferer = config.init_obj("inferer", module_inferer)
+    else:
+        inferer = None
+    
+    
+    post_transforms = {}
+    for name, part in config["post_transforms"].items():
+        if part is None:
+            post_transforms[name] = None
+            continue
+
+        transforms = []
+        for p in part:
+            try:
+                module = importlib.import_module(p["module"])
+                transform_type = getattr(module, p["type"])
+                transform = transform_type(**p["args"])
+                transforms.append(transform)
+            except Exception as e:
+                print(f"Error creating transform {p}: {e}")
+                continue
+
+        post_transforms[name] = Compose(transforms)
+        
+    #metrics = {name: getattr(importlib.import_module(met["module"]), met["type"])(**met["args"]) for name, met in config["metrics"].items()}
+    metrics = {}
+    for name, met in config["metrics"].items():
+        
+        module = importlib.import_module(met["module"])
+        metric = getattr(importlib.import_module(met["module"]), met["type"])(**met["args"])
+        
+        if 'monai' in met['module']:
+            metrics[name] = metrics_segmentation_constructor_monai(original_metric=metric)
+        else:
+            metrics[name] = metric
 
     Trainer = getattr(module_trainer, config["trainer"]["type"])
     trainer = Trainer(
@@ -61,7 +102,9 @@ def main(config):
         device=device,
         train_data_loader=train_loader,
         valid_data_loader=valid_loader,
+        post_transforms=post_transforms,
         lr_scheduler=lr_scheduler,
+        inferer=inferer,
     )
 
     trainer.train()

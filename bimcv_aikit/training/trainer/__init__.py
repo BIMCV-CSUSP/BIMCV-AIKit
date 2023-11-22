@@ -1,2 +1,3 @@
 from .ClassificationTrainer import ClassificationTrainer
 from .MultimodalClassificationTrainer import MultimodalClassificationTrainer
+from .SegmentationTrainer import SegmentationTrainer
