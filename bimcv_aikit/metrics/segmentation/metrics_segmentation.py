@@ -4,6 +4,7 @@ from torchmetrics import Metric
 import monai
 from monai.data import decollate_batch
 
+
 class metrics_segmentation_constructor_monai:
     """
     metrics_segmentation_multitask: A custom metric for multitask segmentation problems.
@@ -154,4 +155,3 @@ class metrics_segmentation_multitask_logits:
         This is typically used between epochs or different batches of validation data.
         """
         self.metric.reset()
-

@@ -1,7 +1,6 @@
 from torchvision import datasets, transforms
 
-from .base_data_loader import \
-    BaseDataLoader  # At the moment this line is only for testing purposes
+from .base_data_loader import BaseDataLoader  # At the moment this line is only for testing purposes
 
 
 class MNIST(datasets.MNIST):

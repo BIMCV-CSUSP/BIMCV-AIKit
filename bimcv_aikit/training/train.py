@@ -5,9 +5,11 @@ import json
 
 import numpy as np
 import torch
+
 from monai.transforms import Compose
-from ..metrics.segmentation.metrics_segmentation import metrics_segmentation_constructor_monai
+
 from .. import dataloaders as data_loader_module
+from ..metrics.segmentation.metrics_segmentation import metrics_segmentation_constructor_monai
 from . import trainer as module_trainer
 from .parse_config import ConfigParser
 from .utils import prepare_device
@@ -58,7 +60,7 @@ def main():
         criterion = config.init_obj(
             "loss", importlib.import_module(config["loss"]["module"]), **{"weight": torch.tensor(data_loader.class_weights).to(device)}
         )
-    
+
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = config.init_obj("optimizer", torch.optim, trainable_params)
@@ -66,14 +68,13 @@ def main():
 
     train_loader = data_loader(config["data_loader"]["partitions"]["train"])
     valid_loader = data_loader(config["data_loader"]["partitions"]["val"])
-    
+
     if config["inferer"] is not None:
         module_inferer = importlib.import_module(config["inferer"]["module"])
         inferer = config.init_obj("inferer", module_inferer)
     else:
         inferer = None
-    
-    
+
     post_transforms = {}
     for name, part in config["post_transforms"].items():
         if part is None:
@@ -92,15 +93,14 @@ def main():
                 continue
 
         post_transforms[name] = Compose(transforms)
-        
-    #metrics = {name: getattr(importlib.import_module(met["module"]), met["type"])(**met["args"]) for name, met in config["metrics"].items()}
+
+    # metrics = {name: getattr(importlib.import_module(met["module"]), met["type"])(**met["args"]) for name, met in config["metrics"].items()}
     metrics = {}
     for name, met in config["metrics"].items():
-        
         module = importlib.import_module(met["module"])
         metric = getattr(importlib.import_module(met["module"]), met["type"])(**met["args"])
-        
-        if 'monai' in met['module']:
+
+        if "monai" in met["module"]:
             metrics[name] = metrics_segmentation_constructor_monai(original_metric=metric)
         else:
             metrics[name] = metric

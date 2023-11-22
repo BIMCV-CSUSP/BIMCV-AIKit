@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-import monai
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+import monai
 from monai.networks.blocks import UnetrBasicBlock
 from monai.networks.blocks.dynunet_block import UnetBasicBlock, get_conv_layer
 from monai.networks.nets.swin_unetr import SwinUNETR

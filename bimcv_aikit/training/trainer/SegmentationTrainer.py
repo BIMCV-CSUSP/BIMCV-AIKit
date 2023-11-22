@@ -7,8 +7,7 @@ from tqdm import tqdm
 from utils import inf_loop
 
 from monai import visualize
-from monai.data import decollate_batch 
-
+from monai.data import decollate_batch
 
 from .base_trainer import BaseTrainer
 
@@ -50,12 +49,12 @@ class SegmentationTrainer(BaseTrainer):
         self.lr_scheduler = lr_scheduler
         self.log_step = int(np.sqrt(train_data_loader.batch_size))
         self.inferer = inferer
-        self.post_transforms_pred = post_transforms['pred']
-        
-        if 'label' in post_transforms.keys():
-            self.post_transforms_label = post_transforms['label']
+        self.post_transforms_pred = post_transforms["pred"]
+
+        if "label" in post_transforms.keys():
+            self.post_transforms_label = post_transforms["label"]
         else:
-            self.post_transforms_label = post_transforms['pred']
+            self.post_transforms_label = post_transforms["pred"]
 
     def evaluate(self, data_loader):
         """
@@ -88,8 +87,7 @@ class SegmentationTrainer(BaseTrainer):
 
         predictions, labels = torch.cat(outputs, 0), torch.cat(labels, 0)
         metrics_dict = {}
-        
-    
+
         for name, metric_fct in self.metric_ftns.items():
             result = metric_fct(predictions, labels)
             try:
@@ -131,7 +129,7 @@ class SegmentationTrainer(BaseTrainer):
         if not self.metric_ftns:
             return {}
         metrics_dict = {}
-        
+
         for name, metric_fct in self.metric_ftns.items():
             metric_fct(predictions, labels)
             metrics_dict[name] = f"{metric_fct.compute():.4f}"
@@ -207,12 +205,12 @@ class SegmentationTrainer(BaseTrainer):
                 for batch_idx, batch_data in enumerate(tepoch):
                     tepoch.set_description(f"Validation Epoch {epoch}")
                     data, target = batch_data["image"].to(self.device), batch_data["label"].to(self.device)
-                    
+
                     if self.inferer:
-                        output = self.inferer(data,self.model)
+                        output = self.inferer(data, self.model)
                     else:
                         output = self.model(data)
-                    
+
                     loss = self.criterion(output, target)
 
                     metrics_dict = self._compute_metrics(output, target)
@@ -223,7 +221,7 @@ class SegmentationTrainer(BaseTrainer):
                         else:
                             tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict)
                         sleep(0.001)
-                        #self.writer.add_image("input", data.cpu())
+                        # self.writer.add_image("input", data.cpu())
 
         # add histogram of model parameters to the tensorboard
         # for name, p in self.model.named_parameters():
