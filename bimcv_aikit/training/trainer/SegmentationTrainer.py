@@ -4,11 +4,9 @@ import numpy as np
 import torch
 from torch.nn.functional import softmax
 from tqdm import tqdm
-from utils import inf_loop
 
-from monai import visualize
-from monai.data import decollate_batch
 
+from ..utils import inf_loop
 from .base_trainer import BaseTrainer
 
 

@@ -136,9 +136,9 @@ def main():
         "Train Metrics": train_results,
         "Val Metrics": val_results if valid_loader else None,
         "Test Metrics": test_results if test_loader else None,
-        "Train Predictions": train_predictions.tolist(),
-        "Val Predictions": val_predictions.tolist() if valid_loader else None,
-        "Test Predictions": test_predictions.tolist() if test_loader else None,
+        "Train Predictions": train_predictions.tolist()  if train_predictions else None,
+        "Val Predictions": val_predictions.tolist() if valid_loader and val_predictions else None,
+        "Test Predictions": test_predictions.tolist() if test_loader and test_predictions else None,
     }
     with open(f"{config.log_dir}/results.json", "w") as json_file:
         json.dump(results, json_file, ensure_ascii=False, indent=4)
