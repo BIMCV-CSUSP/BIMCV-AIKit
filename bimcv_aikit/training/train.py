@@ -5,19 +5,32 @@ import json
 
 import numpy as np
 import torch
-import trainer as module_trainer
-from parse_config import ConfigParser
-from utils import prepare_device
 from monai.transforms import Compose
-from bimcv_aikit.metrics.segmentation.metrics_segmentation import metrics_segmentation_constructor_monai
-import bimcv_aikit.dataloaders as data_loader_module
+from ..metrics.segmentation.metrics_segmentation import metrics_segmentation_constructor_monai
+from .. import dataloaders as data_loader_module
+from . import trainer as module_trainer
+from .parse_config import ConfigParser
+from .utils import prepare_device
 
 # fix random seeds for reproducibility
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 
-def main(config):
+def main():
+    args = argparse.ArgumentParser(description="PyTorch Template")
+    args.add_argument("-c", "--config", default=None, type=str, help="config file path (default: None)")
+    args.add_argument("-r", "--resume", default=None, type=str, help="path to latest checkpoint (default: None)")
+    args.add_argument("-d", "--device", default=None, type=str, help="indices of GPUs to enable (default: all)")
+
+    # custom cli options to modify configuration from default values given in json file.
+    CustomArgs = collections.namedtuple("CustomArgs", "flags type target")
+    options = [
+        CustomArgs(["--lr", "--learning_rate"], type=float, target="optimizer;args;lr"),
+        CustomArgs(["--bs", "--batch_size"], type=int, target="data_loader;args;batch_size"),
+    ]
+    config = ConfigParser.from_args(args, options)
+
     SEED = config["seed"] if config["seed"] else torch.ranint(1, 10000)
     torch.manual_seed(SEED)
     np.random.seed(SEED)
@@ -132,16 +145,4 @@ def main(config):
 
 
 if __name__ == "__main__":
-    args = argparse.ArgumentParser(description="PyTorch Template")
-    args.add_argument("-c", "--config", default=None, type=str, help="config file path (default: None)")
-    args.add_argument("-r", "--resume", default=None, type=str, help="path to latest checkpoint (default: None)")
-    args.add_argument("-d", "--device", default=None, type=str, help="indices of GPUs to enable (default: all)")
-
-    # custom cli options to modify configuration from default values given in json file.
-    CustomArgs = collections.namedtuple("CustomArgs", "flags type target")
-    options = [
-        CustomArgs(["--lr", "--learning_rate"], type=float, target="optimizer;args;lr"),
-        CustomArgs(["--bs", "--batch_size"], type=int, target="data_loader;args;batch_size"),
-    ]
-    config = ConfigParser.from_args(args, options)
-    main(config)
+    main()

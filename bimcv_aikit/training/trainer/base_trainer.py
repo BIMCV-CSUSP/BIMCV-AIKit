@@ -3,9 +3,10 @@ import sys
 from abc import abstractmethod
 
 import torch
-from logger import TensorboardWriter
 from numpy import inf
 from prettytable import PrettyTable
+
+from ..logger import TensorboardWriter
 
 
 class BaseTrainer:

@@ -2,12 +2,11 @@ from time import sleep
 
 import numpy as np
 import torch
+from monai import visualize
 from torch.nn.functional import softmax
 from tqdm import tqdm
-from utils import inf_loop
 
-from monai import visualize
-
+from ..utils import inf_loop
 from .ClassificationTrainer import ClassificationTrainer
 
 

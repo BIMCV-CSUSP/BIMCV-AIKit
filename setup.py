@@ -22,4 +22,5 @@ setup(
             "tqdm == 4.62.3",
         ]
     },
+    entry_points={"console_scripts": ["bimcv_train=bimcv_aikit.training.train:main", "bimcv_crossval=bimcv_aikit.training.crossval:main"]},
 )
