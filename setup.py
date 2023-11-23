@@ -6,7 +6,7 @@ setup(
     name="bimcv_aikit",
     version=__version__,
     url="https://github.com/BIMCV-CSUSP/BIMCV-AIKit",
-    py_modules=find_packages(),
+    packages=find_packages(),
     extras_require={
         "all": [
             "monai == 1.2.0",
@@ -22,5 +22,10 @@ setup(
             "tqdm == 4.62.3",
         ]
     },
-    entry_points={"console_scripts": ["bimcv_train=bimcv_aikit.training.train:main", "bimcv_crossval=bimcv_aikit.training.crossval:main"]},
+    entry_points={
+        "console_scripts": [
+            "bimcv_train=bimcv_aikit.training.train:main",
+            "bimcv_crossval=bimcv_aikit.training.crossval:main",
+        ]
+    },
 )
