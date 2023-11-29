@@ -40,11 +40,10 @@ def main():
     logger = config.get_logger("train")
 
     # setup data_loader instances
-    data_loader = config.init_obj("data_loader", data_loader_module)
+    data_loader = config.init_obj("data_loader")
 
     # build model architecture, then print to console
-    module_arch = importlib.import_module(config["arch"]["module"])
-    model = config.init_obj("arch", module_arch)
+    model = config.init_obj("arch")
     logger.debug(model)
 
     # prepare for (multi-device) GPU training
@@ -55,11 +54,9 @@ def main():
 
     # get function handles of loss and metrics
     if data_loader.class_weights is None:
-        criterion = config.init_obj("loss", importlib.import_module(config["loss"]["module"]))
+        criterion = config.init_obj("loss")
     else:
-        criterion = config.init_obj(
-            "loss", importlib.import_module(config["loss"]["module"]), **{"weight": torch.tensor(data_loader.class_weights).to(device)}
-        )
+        criterion = config.init_obj("loss", **{"weight": torch.tensor(data_loader.class_weights).to(device)})
 
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
@@ -70,8 +67,7 @@ def main():
     valid_loader = data_loader(config["data_loader"]["partitions"]["val"])
 
     if config["inferer"] is not None:
-        module_inferer = importlib.import_module(config["inferer"]["module"])
-        inferer = config.init_obj("inferer", module_inferer)
+        inferer = config.init_obj("inferer")
     else:
         inferer = None
 
@@ -115,9 +111,9 @@ def main():
         device=device,
         train_data_loader=train_loader,
         valid_data_loader=valid_loader,
-        post_transforms=post_transforms,
+        # post_transforms=post_transforms,
         lr_scheduler=lr_scheduler,
-        inferer=inferer,
+        # inferer=inferer,
     )
 
     trainer.train()
@@ -136,7 +132,7 @@ def main():
         "Train Metrics": train_results,
         "Val Metrics": val_results if valid_loader else None,
         "Test Metrics": test_results if test_loader else None,
-        "Train Predictions": train_predictions.tolist()  if train_predictions else None,
+        "Train Predictions": train_predictions.tolist() if train_predictions else None,
         "Val Predictions": val_predictions.tolist() if valid_loader and val_predictions else None,
         "Test Predictions": test_predictions.tolist() if test_loader and test_predictions else None,
     }

@@ -9,6 +9,7 @@
         "args": {}
     },
     "data_loader": {
+        "module": "bimcv_aikit.dataloaders",
         "type": "MnistDataLoader",
         "partitions": {
             "folds": [
@@ -26,8 +27,60 @@
             "data_dir": "data/",
             "batch_size": 128,
             "shuffle": true,
-            "validation_split": 0.1,
-            "num_workers": 1
+            "num_workers": 1,
+            "transforms": {
+                "train": {
+                    "module": "torchvision.transforms",
+                    "type": "Compose",
+                    "args": {
+                        "transforms": [
+                            {
+                                "module": "torchvision.transforms",
+                                "type": "ToTensor",
+                                "args": {}
+                            },
+                            {
+                                "module": "torchvision.transforms",
+                                "type": "Normalize",
+                                "args": {
+                                    "mean": [
+                                        0.1307
+                                    ],
+                                    "std": [
+                                        0.3081
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                },
+                "test": {
+                    "module": "torchvision.transforms",
+                    "type": "Compose",
+                    "args": {
+                        "transforms": [
+                            {
+                                "module": "torchvision.transforms",
+                                "type": "ToTensor",
+                                "args": {}
+                            },
+                            {
+                                "module": "torchvision.transforms",
+                                "type": "Normalize",
+                                "args": {
+                                    "mean": [
+                                        0.1307
+                                    ],
+                                    "std": [
+                                        0.3081
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                },
+                "val": {}
+            }
         }
     },
     "optimizer": {
