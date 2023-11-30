@@ -23,7 +23,7 @@ class BaseDataLoader(Callable):
         return NotImplementedError
 
     @staticmethod
-    def init_transforms(transforms_config: dict):
+    def init_transforms(transforms_config: dict) -> dict:
         """
         Initializes the transforms from a configuration dictionary.
         """
@@ -50,7 +50,7 @@ class BaseClassificationDataLoader(BaseDataLoader):
     class_weights: Union[list, None] = None
 
     @property
-    def class_weights(self):
+    def class_weights(self) -> list:
         """
         Returns the class weights for the dataset.
         """

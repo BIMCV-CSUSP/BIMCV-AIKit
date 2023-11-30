@@ -26,7 +26,7 @@ class MnistDataLoader(BaseClassificationDataLoader):
         self.transform = transforms_dict
         self.train_dataset = MNIST(data_dir, train=True, download=True, transform=transforms_dict["train"])
 
-    def __call__(self, partition: str):
+    def __call__(self, partition: str) -> DataLoader:
         if partition == "train":
             return DataLoader(self.train_dataset, **self.dataloader_kwargs)
         if partition == "test":
