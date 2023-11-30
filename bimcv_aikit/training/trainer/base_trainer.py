@@ -172,6 +172,39 @@ class BaseTrainer:
 
         self.logger.info("Checkpoint loaded. Resume training from epoch {}".format(self.start_epoch))
 
+    # @staticmethod
+    # def _init_transforms(transforms_config: Union[dict, list]) -> Union[Any, dict]:
+    #     """
+    #     Initializes the transforms from a configuration dictionary.
+    #     """
+    #     if not transforms_config:
+    #         return {}
+    #     if isinstance(transforms_config, list):
+    #         try:
+    #             transform_list = [
+    #                 init_obj(transform["module"], transform["type"], **transform["args"]) for transform in transforms_config["args"]["transforms"]
+    #             ]
+    #         except Exception as e:
+    #             print(f"Error defining transforms")
+    #             raise e
+    #         transforms_config["args"]["transforms"] = transform_list
+    #         return init_obj(transforms_config["module"], transforms_config["type"], **transforms_config["args"])
+    #     transforms = {}
+    #     for partition, transform_config in transforms_config.items():
+    #         if not transform_config:
+    #             transforms[partition] = None
+    #             continue
+    #         try:
+    #             transform_list = [
+    #                 init_obj(transform["module"], transform["type"], **transform["args"]) for transform in transform_config["args"]["transforms"]
+    #             ]
+    #         except Exception as e:
+    #             print(f"Error defining transforms for {partition} partition")
+    #             raise e
+    #         transform_config["args"]["transforms"] = transform_list
+    #         transforms[partition] = init_obj(transform_config["module"], transform_config["type"], **transform_config["args"])
+    #     return transforms
+
 
 class GracefulKiller:
     kill_now = False
