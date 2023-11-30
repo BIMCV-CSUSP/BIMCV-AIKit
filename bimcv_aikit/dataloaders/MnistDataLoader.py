@@ -1,4 +1,4 @@
-from torchvision import datasets, transforms
+from torchvision import datasets
 from torch.utils.data import DataLoader
 from .BaseDataLoader import BaseClassificationDataLoader
 
@@ -32,5 +32,4 @@ class MnistDataLoader(BaseClassificationDataLoader):
         if partition == "test":
             test_dataset = MNIST(self.data_dir, train=False, download=True, transform=self.transform[partition])
             return DataLoader(test_dataset, **self.dataloader_kwargs)
-        # logging.logger.warning(f"Partition {partition} not available.")
         return None
