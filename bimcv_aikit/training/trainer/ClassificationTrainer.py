@@ -7,7 +7,7 @@ from torch.nn.functional import softmax
 from tqdm import tqdm
 
 from ..utils import inf_loop
-from .base_trainer import BaseTrainer
+from .BaseTrainer import BaseTrainer
 
 
 class ClassificationTrainer(BaseTrainer):

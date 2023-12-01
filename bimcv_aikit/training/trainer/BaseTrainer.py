@@ -1,12 +1,16 @@
+import pathlib
 import signal
-import sys
 from abc import abstractmethod
+from collections.abc import Callable
+from typing import Any, Union
 
 import torch
 from numpy import inf
 from prettytable import PrettyTable
 
+from ...utils.config import init_obj
 from ..logger import TensorboardWriter
+from ..parse_config import ConfigParser
 
 
 class BaseTrainer:
@@ -14,7 +18,15 @@ class BaseTrainer:
     Base class for all trainers
     """
 
-    def __init__(self, model, criterion, metric_ftns, optimizer, config, fold=""):
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        criterion: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
+        metric_ftns: dict,
+        optimizer: torch.optim.Optimizer,
+        config: ConfigParser,
+        fold: str = "",
+    ):
         self.config = config
         self.logger = config.get_logger("trainer", config["trainer"]["verbosity"])
 
@@ -55,11 +67,44 @@ class BaseTrainer:
         self.killer = GracefulKiller()
 
     @abstractmethod
-    def _train_epoch(self, epoch):
+    def evaluate(self, data_loader: torch.utils.data.DataLoader) -> tuple:
+        """
+        Evaluates the PyTorch model using the given data loader.
+
+        :param data_loader: torch.utils.data.DataLoader, the PyTorch DataLoader object to use for evaluation.
+        :return: A tuple containing the predicted values (torch.Tensor) and the computed metrics (dict).
+        """
+        return NotImplementedError
+
+    @abstractmethod
+    def _aggregate_metrics_per_epoch(self, stage: str, epoch: int) -> dict:
+        """
+        Aggregates metrics for the given stage and epoch, and logs to tensorboard.
+
+        :param stage: The stage of the training process. Must be a string.
+        :param epoch: The epoch number. Must be an integer.
+        :return: A dictionary containing the aggregated metrics.
+        """
+        return NotImplementedError
+
+    @abstractmethod
+    def _compute_metrics(self, predictions: torch.Tensor, labels: torch.Tensor) -> dict:
+        """
+        Computes metrics for the given predictions and labels.
+
+        :param predictions: torch.Tensor, the predicted values.
+        :param labels: torch.Tensor, the true values.
+        :return: A dictionary containing the computed metrics.
+        """
+        return NotImplementedError
+
+    @abstractmethod
+    def _train_epoch(self, epoch: int) -> dict:
         """
         Training logic for an epoch
 
-        :param epoch: Current epoch number
+        :param epoch: Current epoch number.
+        :return: A dictionary containing the computed metrics for that epoch.
         """
         raise NotImplementedError
 
@@ -116,7 +161,7 @@ class BaseTrainer:
                 self.logger.info(f"Terminating training at epoch {epoch} after receiving SIGTERM or SIGINT...")
                 break
 
-    def _save_checkpoint(self, epoch, save_best=False):
+    def _save_checkpoint(self, epoch: int, save_best: bool = False):
         """
         Saving checkpoints
 
@@ -142,7 +187,7 @@ class BaseTrainer:
             torch.save(state, best_path)
             self.logger.info("Saving current best: model_best.pth ...")
 
-    def _resume_checkpoint(self, resume_path):
+    def _resume_checkpoint(self, resume_path: pathlib.Path):
         """
         Resume from saved checkpoints
 
@@ -172,41 +217,49 @@ class BaseTrainer:
 
         self.logger.info("Checkpoint loaded. Resume training from epoch {}".format(self.start_epoch))
 
-    # @staticmethod
-    # def _init_transforms(transforms_config: Union[dict, list]) -> Union[Any, dict]:
-    #     """
-    #     Initializes the transforms from a configuration dictionary.
-    #     """
-    #     if not transforms_config:
-    #         return {}
-    #     if isinstance(transforms_config, list):
-    #         try:
-    #             transform_list = [
-    #                 init_obj(transform["module"], transform["type"], **transform["args"]) for transform in transforms_config["args"]["transforms"]
-    #             ]
-    #         except Exception as e:
-    #             print(f"Error defining transforms")
-    #             raise e
-    #         transforms_config["args"]["transforms"] = transform_list
-    #         return init_obj(transforms_config["module"], transforms_config["type"], **transforms_config["args"])
-    #     transforms = {}
-    #     for partition, transform_config in transforms_config.items():
-    #         if not transform_config:
-    #             transforms[partition] = None
-    #             continue
-    #         try:
-    #             transform_list = [
-    #                 init_obj(transform["module"], transform["type"], **transform["args"]) for transform in transform_config["args"]["transforms"]
-    #             ]
-    #         except Exception as e:
-    #             print(f"Error defining transforms for {partition} partition")
-    #             raise e
-    #         transform_config["args"]["transforms"] = transform_list
-    #         transforms[partition] = init_obj(transform_config["module"], transform_config["type"], **transform_config["args"])
-    #     return transforms
+    @staticmethod
+    def _init_transforms(transforms_config: Union[dict, list]) -> Union[Any, dict]:
+        """
+        Initializes the transforms from a configuration dictionary.
+        """
+        if not transforms_config:
+            return {}
+        if isinstance(transforms_config, list):
+            try:
+                transform_list = [
+                    init_obj(transform["module"], transform["type"], **transform["args"]) for transform in transforms_config["args"]["transforms"]
+                ]
+            except Exception as e:
+                print(f"Error defining transforms")
+                raise e
+            transforms_config["args"]["transforms"] = transform_list
+            return init_obj(transforms_config["module"], transforms_config["type"], **transforms_config["args"])
+        transforms = {}
+        for partition, transform_config in transforms_config.items():
+            if not transform_config:
+                transforms[partition] = None
+                continue
+            try:
+                transform_list = [
+                    init_obj(transform["module"], transform["type"], **transform["args"]) for transform in transform_config["args"]["transforms"]
+                ]
+            except Exception as e:
+                print(f"Error defining transforms for {partition} partition")
+                raise e
+            transform_config["args"]["transforms"] = transform_list
+            transforms[partition] = init_obj(transform_config["module"], transform_config["type"], **transform_config["args"])
+        return transforms
 
 
 class GracefulKiller:
+    """
+    A class that allows for graceful termination of a program.
+
+    Attributes:
+        kill_now (bool): Flag indicating whether the program should be terminated.
+        cont (int): Counter for the number of times the exit_gracefully method has been called.
+    """
+
     kill_now = False
 
     def __init__(self):
@@ -215,6 +268,12 @@ class GracefulKiller:
         self.cont = 0
 
     def exit_gracefully(self, *args):
+        """
+        Method to handle the graceful termination of the program.
+
+        Args:
+            *args: Variable number of arguments passed to the signal handler.
+        """
         self.kill_now = True
         self.cont += 1
         if self.cont > 1:
