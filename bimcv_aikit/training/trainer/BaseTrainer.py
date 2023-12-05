@@ -149,21 +149,22 @@ class BaseTrainer:
         """
         arch = type(self.model).__name__
         state = {
-            # "arch": arch,
+            "arch": arch,
             "epoch": epoch,
-            "state_dict": self.model.state_dict(),
+            # "state_dict": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "monitor_best": self.mnt_best,
-            # "config": self.config,
+            "config": self.config,
         }
+        weights = {"state_dict": self.model.state_dict()}
         if epoch % self.save_period == 0:
-            filename = str(self.checkpoint_dir / "checkpoint-epoch{}.pth".format(epoch))
-            torch.save(state, filename)
-            self.logger.info("Saving checkpoint: {} ...".format(filename))
+            torch.save(state, str(self.checkpoint_dir / f"checkpoint-epoch{epoch}.pth"))
+            torch.save(weights, str(self.checkpoint_dir / f"model-weights-epoch{epoch}.pth"))
+            self.logger.info(f"Saving checkpoint epoch {epoch} ...")
         if save_best:
-            best_path = str(self.checkpoint_dir / "model_best.pth")
-            torch.save(state, best_path)
-            self.logger.info("Saving current best: model_best.pth ...")
+            torch.save(state, str(self.checkpoint_dir / "best-checkpoint.pth"))
+            torch.save(weights, str(self.checkpoint_dir / "best-model-weights.pth"))
+            self.logger.info("Saving current best: best-model-weights.pth ...")
 
     def _resume_checkpoint(self, resume_path: pathlib.Path):
         """
@@ -171,25 +172,24 @@ class BaseTrainer:
 
         :param resume_path: Checkpoint path to be resumed
         """
-        resume_path = str(resume_path)
-        self.logger.info("Loading checkpoint: {} ...".format(resume_path))
-        checkpoint = torch.load(resume_path)
+        resume_path = pathlib.Path(resume_path)
+        self.logger.info(f"Loading checkpoint: {resume_path} ...")
+        checkpoint = torch.load(str(resume_path))
         self.start_epoch = checkpoint["epoch"] + 1
         self.mnt_best = checkpoint["monitor_best"]
 
         # load architecture params from checkpoint.
         if checkpoint["config"]["arch"] != self.config["arch"]:
-            self.logger.warning(
-                "Warning: Architecture configuration given in config file is different from that of "
-                "checkpoint. This may yield an exception while state_dict is being loaded."
-            )
-        self.model.load_state_dict(checkpoint["state_dict"])
+            raise ValueError("Architecture configuration given in config file is different from that of checkpoint.")
+        weights_path = resume_path.parent.joinpath(resume_path.stem.replace("checkpoint", "model-weights"))
+        if not str(weights_path).endswith(".pth"):
+            weights_path = weights_path.with_suffix(".pth")
+        print(weights_path)
+        self.model.load_state_dict(torch.load(str(weights_path))["state_dict"])
 
         # load optimizer state from checkpoint only when optimizer type is not changed.
         if checkpoint["config"]["optimizer"]["type"] != self.config["optimizer"]["type"]:
-            self.logger.warning(
-                "Warning: Optimizer type given in config file is different from that of checkpoint. " "Optimizer parameters not being resumed."
-            )
+            self.logger.warning("Optimizer type given in config file is different from that of checkpoint. Optimizer parameters not being resumed.")
         else:
             self.optimizer.load_state_dict(checkpoint["optimizer"])
 

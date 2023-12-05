@@ -53,7 +53,7 @@ class ClassificationTrainer(BaseTrainer):
         :return: A tuple containing the predicted values and the computed metrics.
         """
 
-        path = str(self.checkpoint_dir / "model_best.pth")
+        path = str(self.checkpoint_dir / "best-model-weights.pth")
         checkpoint = torch.load(path)
         self.model.load_state_dict(checkpoint["state_dict"])
         self.logger.info(f"Checkpoint {path} loaded.")
