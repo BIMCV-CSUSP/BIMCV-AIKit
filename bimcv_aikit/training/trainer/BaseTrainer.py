@@ -25,15 +25,18 @@ class BaseTrainer:
         metric_ftns: dict,
         optimizer: torch.optim.Optimizer,
         config: ConfigParser,
+        device: torch.device,
+        lr_scheduler: Union[torch.optim.lr_scheduler._LRScheduler, None],
         fold: str = "",
     ):
         self.config = config
         self.logger = config.get_logger("trainer", config["trainer"]["verbosity"])
-
         self.model = model
         self.criterion = criterion
         self.metric_ftns = metric_ftns
         self.optimizer = optimizer
+        self.device = device
+        self.lr_scheduler = lr_scheduler
 
         cfg_trainer = config["trainer"]
         self.epochs = cfg_trainer["epochs"]
@@ -55,7 +58,7 @@ class BaseTrainer:
 
         self.start_epoch = 1
 
-        self.checkpoint_dir = config.save_dir / fold if fold != "" else config.save_dir
+        self.checkpoint_dir = config.save_dir / fold if fold else config.save_dir
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
         # setup visualization writer instance

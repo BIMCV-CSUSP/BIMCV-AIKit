@@ -29,9 +29,7 @@ class ClassificationTrainer(BaseTrainer):
         lr_scheduler=None,
         len_epoch=None,
     ):
-        super().__init__(model, criterion, metric_ftns, optimizer, config, fold)
-        self.config = config
-        self.device = device
+        super().__init__(model, criterion, metric_ftns, optimizer, config, device, lr_scheduler, fold)
         self.data_loader = train_data_loader
         if len_epoch is None:
             # epoch-based training
@@ -42,7 +40,6 @@ class ClassificationTrainer(BaseTrainer):
             self.len_epoch = len_epoch
         self.valid_data_loader = valid_data_loader
         self.do_validation = self.valid_data_loader is not None
-        self.lr_scheduler = lr_scheduler
         self.log_step = int(np.sqrt(train_data_loader.batch_size))
 
     def evaluate(self, data_loader):
