@@ -77,28 +77,6 @@ class BaseTrainer:
         return NotImplementedError
 
     @abstractmethod
-    def _aggregate_metrics_per_epoch(self, stage: str, epoch: int) -> dict:
-        """
-        Aggregates metrics for the given stage and epoch, and logs to tensorboard.
-
-        :param stage: The stage of the training process. Must be a string.
-        :param epoch: The epoch number. Must be an integer.
-        :return: A dictionary containing the aggregated metrics.
-        """
-        return NotImplementedError
-
-    @abstractmethod
-    def _compute_metrics(self, predictions: torch.Tensor, labels: torch.Tensor) -> dict:
-        """
-        Computes metrics for the given predictions and labels.
-
-        :param predictions: torch.Tensor, the predicted values.
-        :param labels: torch.Tensor, the true values.
-        :return: A dictionary containing the computed metrics.
-        """
-        return NotImplementedError
-
-    @abstractmethod
     def _train_epoch(self, epoch: int) -> dict:
         """
         Training logic for an epoch
