@@ -63,6 +63,8 @@ class ClassificationTrainer(BaseTrainer):
         outputs = []
         labels = []
 
+        data_loader.__setattr__("shuffle", False)
+
         with torch.no_grad():
             with tqdm(data_loader, unit="batch") as tepoch:
                 for batch_data in tepoch:
