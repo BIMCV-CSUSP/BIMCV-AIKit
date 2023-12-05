@@ -98,8 +98,8 @@
     },
     "metrics": {
         "accuracy": {
-            "module": "torchmetrics",
-            "type": "Accuracy",
+            "module": "torchmetrics.functional.classification",
+            "type": "accuracy",
             "args": {
                 "task": "multiclass",
                 "average": "weighted",
@@ -107,8 +107,8 @@
             }
         },
         "specificity": {
-            "module": "torchmetrics",
-            "type": "Specificity",
+            "module": "torchmetrics.functional.classification",
+            "type": "specificity",
             "args": {
                 "task": "multiclass",
                 "average": "weighted",

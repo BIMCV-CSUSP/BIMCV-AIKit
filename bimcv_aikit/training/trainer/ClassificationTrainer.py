@@ -124,9 +124,11 @@ class ClassificationTrainer(BaseTrainer):
         if any(predictions.sum(dim=1) != 1.0):  # if predictions are not probabilities
             predictions = softmax(predictions, dim=1)
         if len(predictions.shape) == 2:  # if predictions are one-hot
-            predictions = predictions.argmax(dim=1)
-        if len(labels.shape) == 2:  # if predictions are one-hot
-            labels = labels.argmax(dim=1)
+            predictions = predictions.argmax(dim=1, keepdim=True)
+        if len(labels.shape) == 1:
+            labels = labels.unsqueeze(1)
+        elif len(labels.shape) == 2:  # if predictions are one-hot
+            labels = labels.argmax(dim=1, keepdim=True)
         for name, metric_fct in self.metric_ftns.items():
             metric_fct(predictions.to("cpu"), labels.to("cpu"))
             metrics_dict[name] = f"{metric_fct.compute():.4f}"

@@ -2,14 +2,15 @@ import argparse
 import collections
 import importlib
 import json
+from functools import partial
 
 import numpy as np
 import torch
 from monai.transforms import Compose
 
 from .. import dataloaders as data_loader_module
-from ..metrics.segmentation.metrics_segmentation import \
-    metrics_segmentation_constructor_monai
+from ..metrics.BaseMetric import BaseMetric
+from ..metrics.segmentation.metrics_segmentation import metrics_segmentation_constructor_monai
 from . import trainer as module_trainer
 from .parse_config import ConfigParser
 from .utils import prepare_device
@@ -66,40 +67,40 @@ def main():
     train_loader = data_loader(config["data_loader"]["partitions"]["train"])
     valid_loader = data_loader(config["data_loader"]["partitions"]["val"])
 
-    if config["inferer"] is not None:
-        inferer = config.init_obj("inferer")
-    else:
-        inferer = None
+    # if config["inferer"] is not None:
+    #     inferer = config.init_obj("inferer")
+    # else:
+    #     inferer = None
 
-    post_transforms = {}
-    for name, part in config["post_transforms"].items():
-        if part is None:
-            post_transforms[name] = None
-            continue
+    # post_transforms = {}
+    # for name, part in config["post_transforms"].items():
+    #     if part is None:
+    #         post_transforms[name] = None
+    #         continue
 
-        transforms = []
-        for p in part:
-            try:
-                module = importlib.import_module(p["module"])
-                transform_type = getattr(module, p["type"])
-                transform = transform_type(**p["args"])
-                transforms.append(transform)
-            except Exception as e:
-                print(f"Error creating transform {p}: {e}")
-                continue
+    #     transforms = []
+    #     for p in part:
+    #         try:
+    #             module = importlib.import_module(p["module"])
+    #             transform_type = getattr(module, p["type"])
+    #             transform = transform_type(**p["args"])
+    #             transforms.append(transform)
+    #         except Exception as e:
+    #             print(f"Error creating transform {p}: {e}")
+    #             continue
 
-        post_transforms[name] = Compose(transforms)
+    #     post_transforms[name] = Compose(transforms)
 
     # metrics = {name: getattr(importlib.import_module(met["module"]), met["type"])(**met["args"]) for name, met in config["metrics"].items()}
     metrics = {}
     for name, met in config["metrics"].items():
         module = importlib.import_module(met["module"])
-        metric = getattr(importlib.import_module(met["module"]), met["type"])(**met["args"])
+        metric = partial(getattr(importlib.import_module(met["module"]), met["type"]), **met["args"])
 
         if "monai" in met["module"]:
             metrics[name] = metrics_segmentation_constructor_monai(original_metric=metric)
         else:
-            metrics[name] = metric
+            metrics[name] = BaseMetric(metric)
 
     Trainer = getattr(module_trainer, config["trainer"]["type"])
     trainer = Trainer(
