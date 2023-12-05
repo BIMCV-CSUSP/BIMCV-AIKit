@@ -72,26 +72,6 @@ def main():
     # else:
     #     inferer = None
 
-    # post_transforms = {}
-    # for name, part in config["post_transforms"].items():
-    #     if part is None:
-    #         post_transforms[name] = None
-    #         continue
-
-    #     transforms = []
-    #     for p in part:
-    #         try:
-    #             module = importlib.import_module(p["module"])
-    #             transform_type = getattr(module, p["type"])
-    #             transform = transform_type(**p["args"])
-    #             transforms.append(transform)
-    #         except Exception as e:
-    #             print(f"Error creating transform {p}: {e}")
-    #             continue
-
-    #     post_transforms[name] = Compose(transforms)
-
-    # metrics = {name: getattr(importlib.import_module(met["module"]), met["type"])(**met["args"]) for name, met in config["metrics"].items()}
     metrics = {}
     for name, met in config["metrics"].items():
         metric = partial(getattr(importlib.import_module(met["module"]), met["type"]), **met["args"])

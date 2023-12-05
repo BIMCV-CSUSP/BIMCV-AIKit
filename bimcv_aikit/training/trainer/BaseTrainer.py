@@ -69,6 +69,8 @@ class BaseTrainer:
 
         self.killer = GracefulKiller()
 
+        self.post_transforms = self._init_transforms(config["post_transforms"]) if config["post_transforms"] else None
+
     @abstractmethod
     def evaluate(self, data_loader: torch.utils.data.DataLoader) -> tuple:
         """
@@ -205,16 +207,6 @@ class BaseTrainer:
         """
         if not transforms_config:
             return {}
-        if isinstance(transforms_config, list):
-            try:
-                transform_list = [
-                    init_obj(transform["module"], transform["type"], **transform["args"]) for transform in transforms_config["args"]["transforms"]
-                ]
-            except Exception as e:
-                print(f"Error defining transforms")
-                raise e
-            transforms_config["args"]["transforms"] = transform_list
-            return init_obj(transforms_config["module"], transforms_config["type"], **transforms_config["args"])
         transforms = {}
         for partition, transform_config in transforms_config.items():
             if not transform_config:

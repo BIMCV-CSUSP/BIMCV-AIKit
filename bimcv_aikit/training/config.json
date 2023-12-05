@@ -132,5 +132,58 @@
         "monitor": "min loss",
         "early_stop": 10,
         "tensorboard": false
+    },
+    "post_transforms": {
+        "train": {
+            "module": "torchvision.transforms",
+            "type": "Compose",
+            "args": {
+                "transforms": [
+                    {
+                        "module": "torchvision.transforms",
+                        "type": "ToTensor",
+                        "args": {}
+                    },
+                    {
+                        "module": "torchvision.transforms",
+                        "type": "Normalize",
+                        "args": {
+                            "mean": [
+                                0.1307
+                            ],
+                            "std": [
+                                0.3081
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "test": {
+            "module": "torchvision.transforms",
+            "type": "Compose",
+            "args": {
+                "transforms": [
+                    {
+                        "module": "torchvision.transforms",
+                        "type": "ToTensor",
+                        "args": {}
+                    },
+                    {
+                        "module": "torchvision.transforms",
+                        "type": "Normalize",
+                        "args": {
+                            "mean": [
+                                0.1307
+                            ],
+                            "std": [
+                                0.3081
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "val": {}
     }
 }
