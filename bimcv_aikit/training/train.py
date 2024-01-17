@@ -67,11 +67,6 @@ def main():
     train_loader = data_loader(config["data_loader"]["partitions"]["train"])
     valid_loader = data_loader(config["data_loader"]["partitions"]["val"])
 
-    # if config["inferer"] is not None:
-    #     inferer = config.init_obj("inferer")
-    # else:
-    #     inferer = None
-
     metrics = {}
     for name, met in config["metrics"].items():
         metric = partial(getattr(importlib.import_module(met["module"]), met["type"]), **met["args"])
@@ -91,9 +86,7 @@ def main():
         device=device,
         train_data_loader=train_loader,
         valid_data_loader=valid_loader,
-        # post_transforms=post_transforms,
         lr_scheduler=lr_scheduler,
-        # inferer=inferer,
     )
 
     trainer.train()

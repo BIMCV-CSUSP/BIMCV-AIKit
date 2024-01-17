@@ -185,5 +185,10 @@
             }
         },
         "val": {}
+    },
+    "inferer": {
+        "module": "monai.inferers",
+        "type": "SimpleInferer",
+        "args": {}
     }
 }

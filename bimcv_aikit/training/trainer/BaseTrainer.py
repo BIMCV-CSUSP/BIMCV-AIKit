@@ -71,6 +71,8 @@ class BaseTrainer:
 
         self.post_transforms = self._init_transforms(config["post_transforms"]) if config["post_transforms"] else None
 
+        self.inferer = config.init_obj("inferer")
+
     @abstractmethod
     def evaluate(self, data_loader: torch.utils.data.DataLoader) -> tuple:
         """
