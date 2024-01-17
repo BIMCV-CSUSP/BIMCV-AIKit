@@ -91,24 +91,25 @@ def main():
 
     trainer.train()
 
+    results = {}
+
     train_predictions, train_results = trainer.evaluate(train_loader)
+    results["Train Metrics"] = train_results
+    results["Train Predictions"] = train_predictions.tolist()
+
     if valid_loader:
         val_predictions, val_results = trainer.evaluate(valid_loader)
+        results["Validation Metrics"] = val_results
+        results["Validation Predictions"] = val_predictions.tolist()
 
-    del train_loader  # , valid_loader
+    del train_loader, valid_loader
 
     test_loader = data_loader(config["data_loader"]["partitions"]["test"])
     if test_loader:
         test_predictions, test_results = trainer.evaluate(test_loader)
+        results["Test Metrics"] = test_results
+        results["Test Predictions"] = test_predictions.tolist()
 
-    results = {
-        "Train Metrics": train_results,
-        "Val Metrics": val_results if valid_loader else None,
-        "Test Metrics": test_results if test_loader else None,
-        "Train Predictions": train_predictions.tolist() if isinstance(train_predictions, np.ndarray) else None,
-        "Val Predictions": val_predictions.tolist() if valid_loader and isinstance(val_predictions, np.ndarray) else None,
-        "Test Predictions": test_predictions.tolist() if test_loader and isinstance(test_predictions, np.ndarray) else None,
-    }
     with open(f"{config.log_dir}/results.json", "w") as json_file:
         json.dump(results, json_file, ensure_ascii=False, indent=4)
 
