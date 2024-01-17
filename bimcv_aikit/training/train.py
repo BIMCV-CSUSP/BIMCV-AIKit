@@ -6,9 +6,7 @@ from functools import partial
 
 import numpy as np
 import torch
-from monai.transforms import Compose
 
-from .. import dataloaders as data_loader_module
 from ..metrics.BaseMetric import BaseMetric
 from ..metrics.segmentation.metrics_segmentation import metrics_segmentation_constructor_monai
 from . import trainer as module_trainer
