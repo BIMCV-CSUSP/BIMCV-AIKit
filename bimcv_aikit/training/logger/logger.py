@@ -4,7 +4,6 @@ from pathlib import Path
 
 from ..utils import read_json
 
-
 this_file_path = Path(__file__).parent
 
 
