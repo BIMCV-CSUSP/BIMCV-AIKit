@@ -5,7 +5,7 @@ from collections.abc import Callable
 from typing import Any, Union
 
 import torch
-from numpy import inf
+from numpy import inf, ndarray
 from prettytable import PrettyTable
 
 from ...utils.config import init_obj
@@ -74,15 +74,36 @@ class BaseTrainer:
         self.inferer = config.init_obj("inferer")
 
     @abstractmethod
-    def evaluate(self, data_loader: torch.utils.data.DataLoader, load_best_weights: bool) -> tuple:
+    def _evaluate(self, data_loader: torch.utils.data.DataLoader) -> tuple[ndarray, dict]:
+        """
+        Evaluates the PyTorch model using the given data loader.
+
+        :param data_loader: torch.utils.data.DataLoader, the PyTorch DataLoader object to use for evaluation.
+        :return: A tuple containing the predicted values (numpy.ndarray) and the computed metrics (dict).
+        """
+        return NotImplementedError
+
+    def evaluate(self, data_loader: torch.utils.data.DataLoader, load_best_weights: bool = True) -> tuple[ndarray, dict]:
         """
         Evaluates the PyTorch model using the given data loader.
 
         :param data_loader: torch.utils.data.DataLoader, the PyTorch DataLoader object to use for evaluation.
         :param load_best_weights: bool, whether to load the best weights of the model before evaluation.
-        :return: A tuple containing the predicted values (torch.Tensor) and the computed metrics (dict).
+        :return: A tuple containing the predicted values (numpy.ndarray) and the computed metrics (dict).
         """
-        return NotImplementedError
+        if load_best_weights:
+            path = str(self.checkpoint_dir / "best-model-weights.pth")
+            checkpoint = torch.load(path)
+            self.model.load_state_dict(checkpoint["state_dict"])
+            self.logger.info(f"Checkpoint {path} loaded.")
+        self.model = self.model.to(self.device)
+        self.model.eval()
+
+        data_loader.__setattr__("shuffle", False)
+
+        predict_proba, metrics_dict = self._evaluate(data_loader)
+
+        return predict_proba, metrics_dict
 
     @abstractmethod
     def _train_epoch(self, epoch: int) -> dict:

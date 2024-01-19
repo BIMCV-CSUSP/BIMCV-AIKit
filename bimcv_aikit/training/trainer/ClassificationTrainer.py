@@ -42,7 +42,7 @@ class ClassificationTrainer(BaseTrainer):
         self.do_validation = self.valid_data_loader is not None
         self.log_step = int(np.sqrt(train_data_loader.batch_size))
 
-    def evaluate(self, data_loader, load_best_weights=True):
+    def _evaluate(self, data_loader):
         """
         Evaluates the PyTorch model using the given data loader.
 
@@ -50,18 +50,8 @@ class ClassificationTrainer(BaseTrainer):
         :return: A tuple containing the predicted values and the computed metrics.
         """
 
-        if load_best_weights:
-            path = str(self.checkpoint_dir / "best-model-weights.pth")
-            checkpoint = torch.load(path)
-            self.model.load_state_dict(checkpoint["state_dict"])
-            self.logger.info(f"Checkpoint {path} loaded.")
-        self.model = self.model.to(self.device)
-        self.model.eval()
-
         outputs = []
         labels = []
-
-        data_loader.__setattr__("shuffle", False)
 
         with torch.no_grad():
             with tqdm(data_loader, unit="batch") as tepoch:
