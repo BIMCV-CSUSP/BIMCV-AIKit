@@ -74,11 +74,12 @@ class BaseTrainer:
         self.inferer = config.init_obj("inferer")
 
     @abstractmethod
-    def evaluate(self, data_loader: torch.utils.data.DataLoader) -> tuple:
+    def evaluate(self, data_loader: torch.utils.data.DataLoader, load_best_weights: bool) -> tuple:
         """
         Evaluates the PyTorch model using the given data loader.
 
         :param data_loader: torch.utils.data.DataLoader, the PyTorch DataLoader object to use for evaluation.
+        :param load_best_weights: bool, whether to load the best weights of the model before evaluation.
         :return: A tuple containing the predicted values (torch.Tensor) and the computed metrics (dict).
         """
         return NotImplementedError
@@ -201,6 +202,7 @@ class BaseTrainer:
             self.optimizer.load_state_dict(checkpoint["optimizer"])
 
         self.logger.info("Checkpoint loaded. Resume training from epoch {}".format(self.start_epoch))
+        self.checkpoint_dir = resume_path.parent
 
     @staticmethod
     def _init_transforms(transforms_config: Union[dict, list]) -> Union[Any, dict]:
