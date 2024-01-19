@@ -27,6 +27,8 @@ class ClassificationTrainer(BaseTrainer):
         train_data_loader,
         fold="",
         valid_data_loader=None,
+        post_transforms=None,
+        inferer=None,
         lr_scheduler=None,
         len_epoch=None,
     ):
@@ -215,7 +217,7 @@ class ClassificationTrainer(BaseTrainer):
                         else:
                             tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict)
                         sleep(0.001)
-                        self.writer.add_image("input", data.cpu())
+                        # self.writer.add_image("input", data.cpu())
 
         # add histogram of model parameters to the tensorboard
         # for name, p in self.model.named_parameters():
