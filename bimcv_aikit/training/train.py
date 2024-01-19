@@ -20,7 +20,7 @@ torch.backends.cudnn.benchmark = False
 
 def main():
     args = argparse.ArgumentParser(description="PyTorch Template")
-    args.add_argument("-c", "--config", default=None, type=str, help="config file path (default: None)")
+    args.add_argument("-c", "--config", required=True, type=str, help="config file path")
     args.add_argument("-r", "--resume", default=None, type=str, help="path to latest checkpoint (default: None)")
     args.add_argument("-d", "--device", default=None, type=str, help="indices of GPUs to enable (default: all)")
 
