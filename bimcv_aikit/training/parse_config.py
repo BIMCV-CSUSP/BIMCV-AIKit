@@ -29,14 +29,17 @@ class ConfigParser:
 
         exper_name = self.config["name"]
         task_name = self.config["task"]
-        if run_id is None:  # use timestamp as default run-id
-            run_id = datetime.now().strftime(r"%d-%b-%Y-%H:%M:%S")
-        self._save_dir = save_dir / task_name / exper_name / run_id / "models"
-        self._log_dir = save_dir / task_name / exper_name / run_id
-
+        if not resume:
+            if run_id is None:  # use timestamp as default run-id
+                run_id = datetime.now().strftime(r"%d-%b-%Y-%H:%M:%S")
+            self._save_dir = save_dir / task_name / exper_name / run_id / "models"
+            self._log_dir = save_dir / task_name / exper_name / run_id
+            exist_ok = run_id == ""
+            self.save_dir.mkdir(parents=True, exist_ok=exist_ok)
+        else:
+            self._save_dir = Path(resume).parent
+            self._log_dir = Path(resume).parents[1]
         # make directory for saving checkpoints and log.
-        exist_ok = run_id == ""
-        self.save_dir.mkdir(parents=True, exist_ok=exist_ok)
         # self.log_dir.mkdir(parents=True, exist_ok=exist_ok)
 
         # save updated config file to the checkpoint dir
