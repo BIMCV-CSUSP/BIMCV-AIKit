@@ -4,8 +4,10 @@ from pathlib import Path
 
 from ..utils import read_json
 
+this_file_path = Path(__file__).parent
 
-def setup_logging(save_dir, log_config="logger/logger_config.json", default_level=logging.INFO):
+
+def setup_logging(save_dir, log_config=this_file_path.joinpath("logger_config.json"), default_level=logging.INFO):
     """
     Setup logging configuration
     """

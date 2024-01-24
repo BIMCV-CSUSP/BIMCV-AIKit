@@ -2,13 +2,12 @@ from time import sleep
 
 import numpy as np
 import torch
+from monai import visualize
 from torch.nn.functional import softmax
 from tqdm import tqdm
 
-from monai import visualize
-
 from ..utils import inf_loop
-from .base_trainer import BaseTrainer
+from .BaseTrainer import BaseTrainer
 
 
 class ClassificationTrainer(BaseTrainer):
@@ -32,9 +31,7 @@ class ClassificationTrainer(BaseTrainer):
         lr_scheduler=None,
         len_epoch=None,
     ):
-        super().__init__(model, criterion, metric_ftns, optimizer, config, fold)
-        self.config = config
-        self.device = device
+        super().__init__(model, criterion, metric_ftns, optimizer, config, device, lr_scheduler, fold)
         self.data_loader = train_data_loader
         if len_epoch is None:
             # epoch-based training
@@ -45,23 +42,15 @@ class ClassificationTrainer(BaseTrainer):
             self.len_epoch = len_epoch
         self.valid_data_loader = valid_data_loader
         self.do_validation = self.valid_data_loader is not None
-        self.lr_scheduler = lr_scheduler
         self.log_step = int(np.sqrt(train_data_loader.batch_size))
 
-    def evaluate(self, data_loader):
+    def _evaluate(self, data_loader):
         """
         Evaluates the PyTorch model using the given data loader.
 
         :param data_loader: torch.utils.data.DataLoader, the PyTorch DataLoader object to use for evaluation.
         :return: A tuple containing the predicted values and the computed metrics.
         """
-
-        path = str(self.checkpoint_dir / "model_best.pth")
-        checkpoint = torch.load(path)
-        self.model.load_state_dict(checkpoint["state_dict"])
-        self.logger.info(f"Checkpoint {path} loaded.")
-        self.model = self.model.to(self.device)
-        self.model.eval()
 
         outputs = []
         labels = []
@@ -127,9 +116,11 @@ class ClassificationTrainer(BaseTrainer):
         if any(predictions.sum(dim=1) != 1.0):  # if predictions are not probabilities
             predictions = softmax(predictions, dim=1)
         if len(predictions.shape) == 2:  # if predictions are one-hot
-            predictions = predictions.argmax(dim=1)
-        if len(labels.shape) == 2:  # if predictions are one-hot
-            labels = labels.argmax(dim=1)
+            predictions = predictions.argmax(dim=1, keepdim=True)
+        if len(labels.shape) == 1:
+            labels = labels.unsqueeze(1)
+        elif len(labels.shape) == 2:  # if predictions are one-hot
+            labels = labels.argmax(dim=1, keepdim=True)
         for name, metric_fct in self.metric_ftns.items():
             metric_fct(predictions.to("cpu"), labels.to("cpu"))
             metrics_dict[name] = f"{metric_fct.compute():.4f}"

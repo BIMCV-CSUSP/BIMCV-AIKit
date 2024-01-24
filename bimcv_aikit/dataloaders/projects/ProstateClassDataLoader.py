@@ -6,8 +6,6 @@ from torch import as_tensor
 from torch.nn.functional import one_hot
 
 from bimcv_aikit.monai.transforms import DeleteBlackSlices
-from monai import transforms
-from monai.data import CacheDataset, DataLoader
 
 config_default = {}
 
@@ -119,6 +117,7 @@ class ProstateClassDataLoader:
     @property
     def class_weights(self):
         return self._class_weights
+
 
 class ProstateMultimodalDataLoader(ProstateClassDataLoader):
     def __init__(

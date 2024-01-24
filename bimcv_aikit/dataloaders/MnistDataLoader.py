@@ -1,6 +1,7 @@
-from torchvision import datasets, transforms
+from torch.utils.data import DataLoader
+from torchvision import datasets
 
-from .base_data_loader import BaseDataLoader  # At the moment this line is only for testing purposes
+from .BaseDataLoader import BaseClassificationDataLoader
 
 
 class MNIST(datasets.MNIST):
@@ -12,20 +13,24 @@ class MNIST(datasets.MNIST):
         return {"image": item[0], "label": item[1]}
 
 
-class MnistDataLoader(BaseDataLoader):
+class MnistDataLoader(BaseClassificationDataLoader):
     """
     MNIST data loading demo using BaseDataLoader
     """
 
-    def __init__(self, data_dir, batch_size, shuffle=True, validation_split=0.0, num_workers=1, training=True):
-        trsfm = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-        self.data_dir = data_dir
-        self.dataset = MNIST(self.data_dir, train=training, download=True, transform=trsfm)
-        super().__init__(self.dataset, batch_size, shuffle, validation_split, num_workers)
+    def __init__(self, data_dir: str, transforms: dict = {}, batch_size: int = 16, shuffle=False, num_workers=1):
+        super().__init__(batch_size, shuffle, num_workers)
 
-    @property
-    def class_weights(self):
-        """
-        Returns the class weights for the dataset.
-        """
-        return [1.0] * 10
+        self.class_weights = [1.0] * 10
+        self.data_dir = data_dir
+        transforms_dict = self.init_transforms(transforms)
+        self.transform = transforms_dict
+        self.train_dataset = MNIST(data_dir, train=True, download=True, transform=transforms_dict["train"])
+
+    def __call__(self, partition: str) -> DataLoader:
+        if partition == "train":
+            return DataLoader(self.train_dataset, **self.dataloader_kwargs)
+        if partition == "test":
+            test_dataset = MNIST(self.data_dir, train=False, download=True, transform=self.transform[partition])
+            return DataLoader(test_dataset, **self.dataloader_kwargs)
+        return None

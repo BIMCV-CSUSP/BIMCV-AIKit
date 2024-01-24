@@ -21,7 +21,7 @@ torch.backends.cudnn.benchmark = False
 def main():
     args = argparse.ArgumentParser(description="PyTorch Template")
     args.add_argument("-c", "--config", required=True, type=str, help="config file path")
-    args.add_argument("-r", "--resume", default=None, type=str, help="path to latest checkpoint (default: None)")
+    args.add_argument("-r", "--resume", required=True, type=str, help="path to checkpoint")
     args.add_argument("-d", "--device", default=None, type=str, help="indices of GPUs to enable (default: all)")
 
     # custom cli options to modify configuration from default values given in json file.
@@ -87,16 +87,14 @@ def main():
         lr_scheduler=lr_scheduler,
     )
 
-    trainer.train()
-
     results = {}
 
-    train_predictions, train_results = trainer.evaluate(train_loader)
+    train_predictions, train_results = trainer.evaluate(train_loader, load_best_weights=False)
     results["Train Metrics"] = train_results
     results["Train Predictions"] = train_predictions.tolist()
 
     if valid_loader:
-        val_predictions, val_results = trainer.evaluate(valid_loader)
+        val_predictions, val_results = trainer.evaluate(valid_loader, load_best_weights=False)
         results["Validation Metrics"] = val_results
         results["Validation Predictions"] = val_predictions.tolist()
 
@@ -104,7 +102,7 @@ def main():
 
     test_loader = data_loader(config["data_loader"]["partitions"]["test"])
     if test_loader:
-        test_predictions, test_results = trainer.evaluate(test_loader)
+        test_predictions, test_results = trainer.evaluate(test_loader, load_best_weights=False)
         results["Test Metrics"] = test_results
         results["Test Predictions"] = test_predictions.tolist()
 

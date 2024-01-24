@@ -1,8 +1,7 @@
 from multiprocessing import Pool
 
-import numpy as np
-
 import monai
+import numpy as np
 
 
 def calculate_adc(dwimin_data, dwimax_data, voxel, b_values):

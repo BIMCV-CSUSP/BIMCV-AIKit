@@ -24,6 +24,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
+            "bimcv_evaluate=bimcv_aikit.training.evaluate:main",
             "bimcv_train=bimcv_aikit.training.train:main",
             "bimcv_crossval=bimcv_aikit.training.crossval:main",
         ]
