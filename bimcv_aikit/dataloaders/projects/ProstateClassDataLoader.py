@@ -1,11 +1,12 @@
 import nibabel as nib
+from bimcv_aikit.monai.transforms import DeleteBlackSlices
+from monai import transforms
+from monai.data import CacheDataset, DataLoader
 from numpy import array, float32, unique
 from pandas import read_csv
 from sklearn.utils.class_weight import compute_class_weight
 from torch import as_tensor
 from torch.nn.functional import one_hot
-
-from bimcv_aikit.monai.transforms import DeleteBlackSlices
 
 config_default = {}
 
@@ -40,7 +41,9 @@ class ProstateClassDataLoader:
         self.groupby = df.groupby(partition_column)
 
         self._class_weights = compute_class_weight(
-            class_weight="balanced", classes=unique(self.groupby.get_group("tr")["label"].values), y=self.groupby.get_group("tr")["label"].values
+            class_weight="balanced",
+            classes=unique(self.groupby.get_group("train")["label"].values),
+            y=self.groupby.get_group("train")["label"].values,
         )
         self.train_transforms = transforms.Compose(
             [
@@ -131,9 +134,10 @@ class ProstateMultimodalDataLoader(ProstateClassDataLoader):
         test_run: bool = False,
         input_shape: str = "(128, 128, 32)",
         rand_prob: int = 0.5,
+        partition_column: str = "partition",
         config: dict = config_default,
     ):
-        super().__init__(path, sep, classes, format_load, img_columns, test_run, input_shape, rand_prob, config)
+        super().__init__(path, sep, classes, format_load, img_columns, test_run, input_shape, rand_prob, partition_column, config)
         self.clinical_cols = ["patient_age", "psa", "psad", "prostate_volume"]
         self.train_transforms = transforms.Compose(
             [

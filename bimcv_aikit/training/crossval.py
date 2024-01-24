@@ -2,11 +2,14 @@ import argparse
 import collections
 import importlib
 import json
+from functools import partial
 
 import numpy as np
 import torch
 
 from .. import dataloaders as data_loader_module
+from ..metrics.BaseMetric import BaseMetric
+from ..metrics.segmentation.metrics_segmentation import metrics_segmentation_constructor_monai
 from . import trainer as module_trainer
 from .parse_config import ConfigParser
 from .utils import prepare_device
@@ -40,7 +43,7 @@ def main():
 
     for fold in config["data_loader"]["partitions"]["folds"]:
         # setup data_loader instances
-        data_loader = config.init_obj("data_loader", data_loader_module, **{"partition_column": fold})
+        data_loader = config.init_obj("data_loader", **{"partition_column": fold})
 
         # build model architecture, then print to console
         module_arch = importlib.import_module(config["arch"]["module"])
@@ -57,7 +60,14 @@ def main():
         criterion = config.init_obj(
             "loss", importlib.import_module(config["loss"]["module"]), **{"weight": torch.tensor(data_loader.class_weights).to(device)}
         )
-        metrics = {name: getattr(importlib.import_module(met["module"]), met["type"])(**met["args"]) for name, met in config["metrics"].items()}
+        metrics = {}
+        for name, met in config["metrics"].items():
+            metric = partial(getattr(importlib.import_module(met["module"]), met["type"]), **met["args"])
+
+            if "monai" in met["module"]:
+                metrics[name] = metrics_segmentation_constructor_monai(original_metric=metric)
+            else:
+                metrics[name] = BaseMetric(metric)
 
         # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
         trainable_params = filter(lambda p: p.requires_grad, model.parameters())

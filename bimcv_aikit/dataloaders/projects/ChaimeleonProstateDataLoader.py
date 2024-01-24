@@ -1,6 +1,7 @@
 import json
 
 import numpy as np
+from bimcv_aikit.monai.transforms import DeleteBlackSlices
 from monai import transforms
 from monai.data import CacheDataset, DataLoader
 from numpy import unique
@@ -8,8 +9,6 @@ from pandas import read_csv
 from sklearn.utils.class_weight import compute_class_weight
 from torch import as_tensor
 from torch.nn.functional import one_hot
-
-from bimcv_aikit.monai.transforms import DeleteBlackSlices
 
 config_default = {}
 
