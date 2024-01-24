@@ -21,6 +21,7 @@ class ProstateClassDataLoader:
         test_run: bool = False,
         input_shape: str = "(128, 128, 32)",
         rand_prob: int = 0.5,
+        partition_column: str = "partition",
         config: dict = config_default,
     ):
         df = read_csv(path, sep=sep)
@@ -36,7 +37,7 @@ class ProstateClassDataLoader:
         df = df[(df["heigth"] > 96) & (df["depth"] > 96)]
         n_classes = len(unique(df["label"].values))
 
-        self.groupby = df.groupby("partition")
+        self.groupby = df.groupby(partition_column)
 
         self._class_weights = compute_class_weight(
             class_weight="balanced", classes=unique(self.groupby.get_group("tr")["label"].values), y=self.groupby.get_group("tr")["label"].values
