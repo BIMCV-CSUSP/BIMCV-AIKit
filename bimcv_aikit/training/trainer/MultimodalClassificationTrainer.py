@@ -33,20 +33,13 @@ class MultimodalClassificationTrainer(ClassificationTrainer):
             model, criterion, metric_ftns, optimizer, config, device, train_data_loader, fold, valid_data_loader, lr_scheduler, len_epoch
         )
 
-    def evaluate(self, data_loader):
+    def _evaluate(self, data_loader):
         """
         Evaluates the PyTorch model using the given data loader.
 
         :param data_loader: torch.utils.data.DataLoader, the PyTorch DataLoader object to use for evaluation.
         :return: A tuple containing the predicted values and the computed metrics.
         """
-
-        path = str(self.checkpoint_dir / "model_best.pth")
-        checkpoint = torch.load(path)
-        self.model.load_state_dict(checkpoint["state_dict"])
-        self.logger.info(f"Checkpoint {path} loaded.")
-        self.model = self.model.to(self.device)
-        self.model.eval()
 
         outputs = []
         labels = []
@@ -121,8 +114,8 @@ class MultimodalClassificationTrainer(ClassificationTrainer):
                     break
 
         metrics_dict = self._aggregate_metrics_per_epoch("train", epoch)
-        if epoch % 5 == 0:
-            self.writer.add_image("input_image", img_data.cpu()[0, :, :, :, 16], global_step=epoch)
+        # if epoch % 5 == 0:
+        #     self.writer.add_image("input_image", img_data.cpu()[0, :, :, :, 16], global_step=epoch)
             # self.writer.add_video('input_video', img_data.cpu().transpose(4,1), global_step=epoch)
 
         if not self.metric_ftns:
