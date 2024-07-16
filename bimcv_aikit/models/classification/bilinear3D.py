@@ -15,13 +15,33 @@ class Bilinear3D(nn.Module):
     def __init__(self, n_classes: int = 2):
         super(Bilinear3D, self).__init__()
         self.conv3d_5_2 = nn.ModuleList(
-            [nn.Conv3d(in_channels=1, out_channels=32, kernel_size=(5, 5, 5), stride=(2, 2, 2), padding="valid") for _ in range(2)]
+            [
+                nn.Conv3d(
+                    in_channels=1,
+                    out_channels=32,
+                    kernel_size=(5, 5, 5),
+                    stride=(2, 2, 2),
+                    padding="valid",
+                )
+                for _ in range(2)
+            ]
         )
         self.conv3d_3_1 = nn.ModuleList(
-            [nn.Conv3d(in_channels=32, out_channels=32, kernel_size=(3, 3, 3), stride=(1, 1, 1), padding="valid") for _ in range(12)]
+            [
+                nn.Conv3d(
+                    in_channels=32,
+                    out_channels=32,
+                    kernel_size=(3, 3, 3),
+                    stride=(1, 1, 1),
+                    padding="valid",
+                )
+                for _ in range(12)
+            ]
         )
         self.bn3d = nn.ModuleList([nn.BatchNorm3d(num_features=32) for _ in range(14)])
-        self.avg = nn.ModuleList([nn.AvgPool3d(kernel_size=(2, 2, 2)) for _ in range(6)])
+        self.avg = nn.ModuleList(
+            [nn.AvgPool3d(kernel_size=(2, 2, 2)) for _ in range(6)]
+        )
         self.dense_100 = nn.Linear(in_features=512, out_features=100)
         self.dense = nn.Linear(in_features=100, out_features=n_classes)
         self.bn = nn.BatchNorm1d(num_features=100)

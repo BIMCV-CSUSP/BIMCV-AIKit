@@ -30,7 +30,13 @@ class SwinViTmlp(nn.Module):
         model = SwinViTmlp(n_classes=3, img_size=(128, 128, 128), in_channels=1, pretrained_weights=None)
     """
 
-    def __init__(self, n_classes: int = 2, img_size: tuple = (96, 96, 96), in_channels: int = 1, pretrained_weights: str = None):
+    def __init__(
+        self,
+        n_classes: int = 2,
+        img_size: tuple = (96, 96, 96),
+        in_channels: int = 1,
+        pretrained_weights: str = None,
+    ):
         """
         Initialize the SwinViTmlp model with the given parameters.
         """
@@ -38,7 +44,13 @@ class SwinViTmlp(nn.Module):
 
         # Define Backbone (SwinUNETR)
         # The SwinUNETR model is used as a backbone to extract features from the input image.
-        backbone = monai.networks.nets.SwinUNETR(img_size=img_size, in_channels=in_channels, out_channels=14, feature_size=48, use_v2=True)
+        backbone = monai.networks.nets.SwinUNETR(
+            img_size=img_size,
+            in_channels=in_channels,
+            out_channels=14,
+            feature_size=48,
+            use_v2=True,
+        )
 
         # Load pretrained weights if provided
         if pretrained_weights:
@@ -98,7 +110,13 @@ class SwinViTMLP_v2(nn.Module):
         model = SwinViTMLP_v2(n_classes=3, img_size=(128, 128, 128), in_channels=1, pretrained_weights=None)
     """
 
-    def __init__(self, n_classes: int = 2, img_size: tuple = (96, 96, 96), in_channels: int = 1, pretrained_weights: str = None):
+    def __init__(
+        self,
+        n_classes: int = 2,
+        img_size: tuple = (96, 96, 96),
+        in_channels: int = 1,
+        pretrained_weights: str = None,
+    ):
         """
         Initialize the SwinViTMLP_v2 model with the given parameters.
         """
@@ -108,7 +126,13 @@ class SwinViTMLP_v2(nn.Module):
 
         # Define Backbone (SwinUNETR)
         # The SwinUNETR model is used as a backbone to extract features from the input image.
-        self.base_model = SwinUNETR(img_size=img_size, in_channels=in_channels, out_channels=14, feature_size=feature_size, use_v2=True)
+        self.base_model = SwinUNETR(
+            img_size=img_size,
+            in_channels=in_channels,
+            out_channels=14,
+            feature_size=feature_size,
+            use_v2=True,
+        )
 
         # Load pretrained weights if provided
         if pretrained_weights:
@@ -126,7 +150,13 @@ class SwinViTMLP_v2(nn.Module):
             res_block=True,
         )
         self.decoder1 = UnetDownBlock(
-            spatial_dims=3, in_channels=feature_size, out_channels=feature_size, kernel_size=3, upsample_kernel_size=2, norm_name="instance", stride=1
+            spatial_dims=3,
+            in_channels=feature_size,
+            out_channels=feature_size,
+            kernel_size=3,
+            upsample_kernel_size=2,
+            norm_name="instance",
+            stride=1,
         )
         self.decoder2 = UnetDownBlock(
             spatial_dims=3,
@@ -240,7 +270,10 @@ class UnetDownBlock(nn.Module):
         stride: Sequence[int] | int,
         upsample_kernel_size: Sequence[int] | int,
         norm_name: tuple | str,
-        act_name: tuple | str = ("leakyrelu", {"inplace": True, "negative_slope": 0.01}),
+        act_name: tuple | str = (
+            "leakyrelu",
+            {"inplace": True, "negative_slope": 0.01},
+        ),
         dropout: tuple | str | float | None = None,
         trans_bias: bool = False,
     ):
@@ -297,7 +330,13 @@ class SwinViTMLP_v3(nn.Module):
         model = SwinViTmlp(n_classes=3, img_size=(128, 128, 128), in_channels=1, pretrained_weights=None)
     """
 
-    def __init__(self, n_classes: int = 2, img_size: tuple = (96, 96, 96), in_channels: int = 1, pretrained_weights: str = None):
+    def __init__(
+        self,
+        n_classes: int = 2,
+        img_size: tuple = (96, 96, 96),
+        in_channels: int = 1,
+        pretrained_weights: str = None,
+    ):
         """
         Initialize the SwinViTmlp model with the given parameters.
         """
@@ -308,7 +347,11 @@ class SwinViTMLP_v3(nn.Module):
         # Define Backbone (SwinUNETR)
         # The SwinUNETR model is used as a backbone to extract features from the input image.
         self.base_model = monai.networks.nets.SwinUNETR(
-            img_size=img_size, in_channels=in_channels, out_channels=14, feature_size=feature_size, use_v2=True
+            img_size=img_size,
+            in_channels=in_channels,
+            out_channels=14,
+            feature_size=feature_size,
+            use_v2=True,
         )
 
         # Load pretrained weights if provided

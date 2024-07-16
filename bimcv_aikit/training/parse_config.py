@@ -1,5 +1,7 @@
+import collections
 import logging
 import os
+from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from functools import partial, reduce
 from importlib import import_module
@@ -8,6 +10,8 @@ from pathlib import Path
 
 from .logger import setup_logging
 from .utils import read_json, write_json
+
+CustomArgs = collections.namedtuple("CustomArgs", "flags type target")
 
 
 class ConfigParser:
@@ -50,33 +54,35 @@ class ConfigParser:
         self.log_levels = {0: logging.WARNING, 1: logging.INFO, 2: logging.DEBUG}
 
     @classmethod
-    def from_args(cls, args, options=""):
+    def from_args(cls, args: ArgumentParser, options: list[CustomArgs]):
         """
         Initialize this class from some cli arguments. Used in train, test.
         """
         for opt in options:
             args.add_argument(*opt.flags, default=None, type=opt.type)
-        if not isinstance(args, tuple):
-            args = args.parse_args()
+        args_namespace: Namespace = args.parse_args()
 
-        if args.device is not None:
-            os.environ["CUDA_VISIBLE_DEVICES"] = args.device
-        if args.resume is not None:
-            resume = Path(args.resume)
+        if args_namespace.device is not None:
+            os.environ["CUDA_VISIBLE_DEVICES"] = args_namespace.device
+        if args_namespace.resume is not None:
+            resume = Path(args_namespace.resume)
             cfg_fname = resume.parent / "config.json"
         else:
             msg_no_cfg = "Configuration file need to be specified. Add '-c config.json', for example."
-            assert args.config is not None, msg_no_cfg
+            assert args_namespace.config is not None, msg_no_cfg
             resume = None
-            cfg_fname = Path(args.config)
+            cfg_fname = Path(args_namespace.config)
 
         config = read_json(cfg_fname)
-        if args.config and resume:
+        if args_namespace.config and resume:
             # update new config for fine-tuning
-            config.update(read_json(args.config))
+            config.update(read_json(args_namespace.config))
 
         # parse custom cli options into dictionary
-        modification = {opt.target: getattr(args, _get_opt_name(opt.flags)) for opt in options}
+        modification = {
+            opt.target: getattr(args_namespace, _get_opt_name(opt.flags))
+            for opt in options
+        }
         return cls(config, resume, modification)
 
     def init_obj(self, name, module=None, *args, **kwargs):
@@ -97,7 +103,9 @@ class ConfigParser:
             module_args = dict(self[name]["args"])
         except Exception as e:
             raise e
-        assert all([k not in module_args for k in kwargs]), "Overwriting kwargs given in config file is not allowed"
+        assert all(
+            [k not in module_args for k in kwargs]
+        ), "Overwriting kwargs given in config file is not allowed"
         module_args.update(kwargs)
         return getattr(module, module_name)(*args, **module_args)
 
@@ -112,7 +120,9 @@ class ConfigParser:
         """
         module_name = self[name]["type"]
         module_args = dict(self[name]["args"])
-        assert all([k not in module_args for k in kwargs]), "Overwriting kwargs given in config file is not allowed"
+        assert all(
+            [k not in module_args for k in kwargs]
+        ), "Overwriting kwargs given in config file is not allowed"
         module_args.update(kwargs)
         return partial(getattr(module, module_name), *args, **module_args)
 
@@ -121,7 +131,9 @@ class ConfigParser:
         return self.config.get(name)
 
     def get_logger(self, name, verbosity=2):
-        msg_verbosity = "verbosity option {} is invalid. Valid options are {}.".format(verbosity, self.log_levels.keys())
+        msg_verbosity = "verbosity option {} is invalid. Valid options are {}.".format(
+            verbosity, self.log_levels.keys()
+        )
         assert verbosity in self.log_levels, msg_verbosity
         logger = logging.getLogger(name)
         logger.setLevel(self.log_levels[verbosity])
@@ -165,6 +177,6 @@ def _set_by_path(tree, keys, value):
     _get_by_path(tree, keys[:-1])[keys[-1]] = value
 
 
-def _get_by_path(tree, keys):
+def _get_by_path(tree, keys) -> dict:
     """Access a nested object in tree by sequence of keys."""
     return reduce(getitem, keys, tree)

@@ -75,7 +75,9 @@ class SegmentationTrainer(BaseTrainer):
             with tqdm(data_loader, unit="batch") as tepoch:
                 for batch_data in tepoch:
                     tepoch.set_description("Progress")
-                    data, target = batch_data["image"].to(self.device), batch_data["label"].to(self.device)
+                    data, target = batch_data["image"].to(self.device), batch_data[
+                        "label"
+                    ].to(self.device)
                     labels.append(target)
                     if self.inferer:
                         outputs.append(self.inferer(data, self.model))
@@ -147,7 +149,9 @@ class SegmentationTrainer(BaseTrainer):
             epoch_loss = 0.0
             for batch_idx, batch_data in enumerate(tepoch):
                 tepoch.set_description(f"Train Epoch {epoch}")
-                data, target = batch_data["image"].to(self.device), batch_data["label"].to(self.device)
+                data, target = batch_data["image"].to(self.device), batch_data[
+                    "label"
+                ].to(self.device)
 
                 self.optimizer.zero_grad()
                 output = self.model(data)
@@ -161,7 +165,9 @@ class SegmentationTrainer(BaseTrainer):
                     if not self.metric_ftns:
                         tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1))
                     else:
-                        tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict)
+                        tepoch.set_postfix(
+                            loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict
+                        )
                     sleep(0.001)
 
                 if batch_idx == self.len_epoch:  # iteration-based training
@@ -201,7 +207,9 @@ class SegmentationTrainer(BaseTrainer):
                 epoch_loss = 0.0
                 for batch_idx, batch_data in enumerate(tepoch):
                     tepoch.set_description(f"Validation Epoch {epoch}")
-                    data, target = batch_data["image"].to(self.device), batch_data["label"].to(self.device)
+                    data, target = batch_data["image"].to(self.device), batch_data[
+                        "label"
+                    ].to(self.device)
 
                     if self.inferer:
                         output = self.inferer(data, self.model)
@@ -216,7 +224,9 @@ class SegmentationTrainer(BaseTrainer):
                         if not self.metric_ftns:
                             tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1))
                         else:
-                            tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict)
+                            tepoch.set_postfix(
+                                loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict
+                            )
                         sleep(0.001)
                         # self.writer.add_image("input", data.cpu())
 

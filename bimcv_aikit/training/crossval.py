@@ -9,7 +9,9 @@ import torch
 
 from .. import dataloaders as data_loader_module
 from ..metrics.BaseMetric import BaseMetric
-from ..metrics.segmentation.metrics_segmentation import metrics_segmentation_constructor_monai
+from ..metrics.segmentation.metrics_segmentation import (
+    metrics_segmentation_constructor_monai,
+)
 from . import trainer as module_trainer
 from .parse_config import ConfigParser
 from .utils import prepare_device
@@ -21,15 +23,35 @@ torch.backends.cudnn.benchmark = False
 
 def main():
     args = argparse.ArgumentParser(description="PyTorch Template")
-    args.add_argument("-c", "--config", default=None, type=str, help="config file path (default: None)")
-    args.add_argument("-r", "--resume", default=None, type=str, help="path to latest checkpoint (default: None)")
-    args.add_argument("-d", "--device", default=None, type=str, help="indices of GPUs to enable (default: all)")
+    args.add_argument(
+        "-c",
+        "--config",
+        default=None,
+        type=str,
+        help="config file path (default: None)",
+    )
+    args.add_argument(
+        "-r",
+        "--resume",
+        default=None,
+        type=str,
+        help="path to latest checkpoint (default: None)",
+    )
+    args.add_argument(
+        "-d",
+        "--device",
+        default=None,
+        type=str,
+        help="indices of GPUs to enable (default: all)",
+    )
 
     # custom cli options to modify configuration from default values given in json file.
     CustomArgs = collections.namedtuple("CustomArgs", "flags type target")
     options = [
         CustomArgs(["--lr", "--learning_rate"], type=float, target="optimizer;args;lr"),
-        CustomArgs(["--bs", "--batch_size"], type=int, target="data_loader;args;batch_size"),
+        CustomArgs(
+            ["--bs", "--batch_size"], type=int, target="data_loader;args;batch_size"
+        ),
     ]
     config = ConfigParser.from_args(args, options)
 
@@ -58,21 +80,32 @@ def main():
 
         # get function handles of loss and metrics
         criterion = config.init_obj(
-            "loss", importlib.import_module(config["loss"]["module"]), **{"weight": torch.tensor(data_loader.class_weights).to(device)}
+            "loss",
+            importlib.import_module(config["loss"]["module"]),
+            **{"weight": torch.tensor(data_loader.class_weights).to(device)},
         )
         metrics = {}
         for name, met in config["metrics"].items():
-            metric = partial(getattr(importlib.import_module(met["module"]), met["type"]), **met["args"])
+            metric = partial(
+                getattr(importlib.import_module(met["module"]), met["type"]),
+                **met["args"],
+            )
 
             if "monai" in met["module"]:
-                metrics[name] = metrics_segmentation_constructor_monai(original_metric=metric)
+                metrics[name] = metrics_segmentation_constructor_monai(
+                    original_metric=metric
+                )
             else:
                 metrics[name] = BaseMetric(metric)
 
         # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
         trainable_params = filter(lambda p: p.requires_grad, model.parameters())
         optimizer = config.init_obj("optimizer", torch.optim, trainable_params)
-        lr_scheduler = config.init_obj("lr_scheduler", torch.optim.lr_scheduler, optimizer) if config["lr_scheduler"] else None
+        lr_scheduler = (
+            config.init_obj("lr_scheduler", torch.optim.lr_scheduler, optimizer)
+            if config["lr_scheduler"]
+            else None
+        )
 
         train_loader = data_loader(config["data_loader"]["partitions"]["train"])
 
@@ -122,8 +155,14 @@ def main():
             else:
                 test_metrics[metric] = [value]
     results["Aggregates"] = {
-        "Train Metrics": {metric: {"mean": np.mean(values), "std": np.std(values)} for metric, values in train_metrics.items()},
-        "Test Metrics": {metric: {"mean": np.mean(values), "std": np.std(values)} for metric, values in test_metrics.items()},
+        "Train Metrics": {
+            metric: {"mean": np.mean(values), "std": np.std(values)}
+            for metric, values in train_metrics.items()
+        },
+        "Test Metrics": {
+            metric: {"mean": np.mean(values), "std": np.std(values)}
+            for metric, values in test_metrics.items()
+        },
     }
     with open(f"{config.log_dir}/cross_val_results.json", "w") as json_file:
         json.dump(results, json_file, ensure_ascii=False, indent=4)

@@ -8,7 +8,9 @@ from torch.nn.functional import softmax
 from tqdm import tqdm
 
 
-def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str = "cuda"):
+def evaluate(
+    model, data_loader, metrics: dict, weights: str = None, device: str = "cuda"
+):
     """
     Basic evaluation function for PyTorch models.
 
@@ -35,7 +37,9 @@ def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str
                 print(metric_fct(predictions, labels).numpy())
 
             metric_fct.reset()
-        print(f"\nResults: \n{', '.join([name+':'+f'{value:.4f}' for name, value in metrics_dict.items()])}")
+        print(
+            f"\nResults: \n{', '.join([name+':'+f'{value:.4f}' for name, value in metrics_dict.items()])}"
+        )
 
         return predictions, metrics_dict
 
@@ -69,7 +73,9 @@ def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str
                 outputs0.append(predicts[0])
                 outputs1.append(predicts[1])
 
-    predictions, results = compute_metrics([vstack(outputs0), vstack(outputs1)], [vstack(labels0), vstack(labels1)])
+    predictions, results = compute_metrics(
+        [vstack(outputs0), vstack(outputs1)], [vstack(labels0), vstack(labels1)]
+    )
 
     return (predictions[0].cpu().numpy(), predictions[1].cpu().numpy()), results
 
@@ -99,11 +105,19 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
         }
     """
 
-    checkpoint_interval = config["checkpoint_interval"] if "checkpoint_interval" in config else None
+    checkpoint_interval = (
+        config["checkpoint_interval"] if "checkpoint_interval" in config else None
+    )
     device = config["device"] if "device" in config else "cuda"
-    early_stopping = EarlyStopper(**config["early_stopping"]) if "early_stopping" in config else None
+    early_stopping = (
+        EarlyStopper(**config["early_stopping"]) if "early_stopping" in config else None
+    )
     epochs = config["epochs"] if "epochs" in config else 100
-    experiment_name = config["experiment_name"] if "experiment_name" in config else f"{model._get_name()}_{strftime('%d-%b-%Y-%H:%M:%S')}"
+    experiment_name = (
+        config["experiment_name"]
+        if "experiment_name" in config
+        else f"{model._get_name()}_{strftime('%d-%b-%Y-%H:%M:%S')}"
+    )
     if "loss_function" in config:
         loss_function = config["loss_function"]
     else:
@@ -117,10 +131,16 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
         from torch.optim import Adadelta  # Avoid circular imports
 
         loss_function = Adadelta(model.parameters())
-    save_weights_dir = config["save_weights_dir"] if "save_weights_dir" in config else None
+    save_weights_dir = (
+        config["save_weights_dir"] if "save_weights_dir" in config else None
+    )
     scheduler = config["scheduler"] if "scheduler" in config else None
-    tensorboard_writer = config["tensorboard_writer"] if "tensorboard_writer" in config else None
-    validation_interval = config["validation_interval"] if "validation_interval" in config else 1
+    tensorboard_writer = (
+        config["tensorboard_writer"] if "tensorboard_writer" in config else None
+    )
+    validation_interval = (
+        config["validation_interval"] if "validation_interval" in config else 1
+    )
     verbose = config["verbose"] if "verbose" in config else True
 
     killer = GracefulKiller()
@@ -137,7 +157,9 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
         for name, metric_fct in metrics.items():
             metrics_dict[name] = metric_fct.compute()
             if tensorboard_writer:
-                tensorboard_writer.add_scalar(f"{name}/{stage.lower()}", metrics_dict[name], epoch)
+                tensorboard_writer.add_scalar(
+                    f"{name}/{stage.lower()}", metrics_dict[name], epoch
+                )
             metric_fct.reset()
             values.append(f"{metrics_dict[name]:.4f}")
 
@@ -239,17 +261,24 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
                     best_loss_epoch = epoch + 1
 
                     if save_weights_dir:
-                        save(model.state_dict(), join(save_weights_dir, f"{experiment_name}.pth"))
+                        save(
+                            model.state_dict(),
+                            join(save_weights_dir, f"{experiment_name}.pth"),
+                        )
 
                     if verbose:
-                        print(f"Lower loss: {best_loss:.4f} at epoch {best_loss_epoch}. Saved new best metric model.")
+                        print(
+                            f"Lower loss: {best_loss:.4f} at epoch {best_loss_epoch}. Saved new best metric model."
+                        )
 
         if scheduler:
             scheduler.step(epoch_loss)
 
         if early_stopping:
             if early_stopping(epoch_loss):
-                print(f"Validation loss has not decreased for {early_stopping.count} epochs. Stopping training...")
+                print(
+                    f"Validation loss has not decreased for {early_stopping.count} epochs. Stopping training..."
+                )
                 break
 
         epoch_elapsed_time = time() - start_time
@@ -257,20 +286,29 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
             print(f"Epoch elapsed time: {epoch_elapsed_time:.4f}")
             print(table)
         if tensorboard_writer:
-            tensorboard_writer.add_scalar("epoch_elapsed_time", epoch_elapsed_time, epoch)
+            tensorboard_writer.add_scalar(
+                "epoch_elapsed_time", epoch_elapsed_time, epoch
+            )
 
         if checkpoint_interval:
             if save_weights_dir and (epoch + 1) % checkpoint_interval == 0:
-                save(model.state_dict(), join(save_weights_dir, f"{experiment_name}_{epoch+1}.pth"))
+                save(
+                    model.state_dict(),
+                    join(save_weights_dir, f"{experiment_name}_{epoch+1}.pth"),
+                )
                 if verbose:
                     print(f"Saved checkpoint at epoch {epoch+1}")
 
         if killer.kill_now:
-            print(f"Received SIGTERM or SIGINT. Terminating training... \nLowest validation loss value: {best_loss:.4f} at epoch: {best_loss_epoch}.")
+            print(
+                f"Received SIGTERM or SIGINT. Terminating training... \nLowest validation loss value: {best_loss:.4f} at epoch: {best_loss_epoch}."
+            )
             break
 
     if verbose:
-        print(f"Training completed, lowest validation loss value: {best_loss:.4f} at epoch: {best_loss_epoch}.")
+        print(
+            f"Training completed, lowest validation loss value: {best_loss:.4f} at epoch: {best_loss_epoch}."
+        )
     if tensorboard_writer:
         tensorboard_writer.close()
 

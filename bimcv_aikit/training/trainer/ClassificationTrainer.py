@@ -31,7 +31,9 @@ class ClassificationTrainer(BaseTrainer):
         lr_scheduler=None,
         len_epoch=None,
     ):
-        super().__init__(model, criterion, metric_ftns, optimizer, config, device, lr_scheduler, fold)
+        super().__init__(
+            model, criterion, metric_ftns, optimizer, config, device, lr_scheduler, fold
+        )
         self.data_loader = train_data_loader
         if len_epoch is None:
             # epoch-based training
@@ -59,7 +61,9 @@ class ClassificationTrainer(BaseTrainer):
             with tqdm(data_loader, unit="batch") as tepoch:
                 for batch_data in tepoch:
                     tepoch.set_description("Progress")
-                    data, target = batch_data["image"].to(self.device), batch_data["label"].to(self.device)
+                    data, target = batch_data["image"].to(self.device), batch_data[
+                        "label"
+                    ].to(self.device)
                     labels.append(target)
                     outputs.append(self.model(data))
 
@@ -141,7 +145,9 @@ class ClassificationTrainer(BaseTrainer):
             epoch_loss = 0.0
             for batch_idx, batch_data in enumerate(tepoch):
                 tepoch.set_description(f"Train Epoch {epoch}")
-                data, target = batch_data["image"].to(self.device), batch_data["label"].to(self.device)
+                data, target = batch_data["image"].to(self.device), batch_data[
+                    "label"
+                ].to(self.device)
 
                 self.optimizer.zero_grad()
                 output = self.model(data)
@@ -155,7 +161,9 @@ class ClassificationTrainer(BaseTrainer):
                     if not self.metric_ftns:
                         tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1))
                     else:
-                        tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict)
+                        tepoch.set_postfix(
+                            loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict
+                        )
                     sleep(0.001)
 
                 if batch_idx == self.len_epoch:  # iteration-based training
@@ -195,7 +203,9 @@ class ClassificationTrainer(BaseTrainer):
                 epoch_loss = 0.0
                 for batch_idx, batch_data in enumerate(tepoch):
                     tepoch.set_description(f"Validation Epoch {epoch}")
-                    data, target = batch_data["image"].to(self.device), batch_data["label"].to(self.device)
+                    data, target = batch_data["image"].to(self.device), batch_data[
+                        "label"
+                    ].to(self.device)
 
                     output = self.model(data)
                     loss = self.criterion(output, target)
@@ -206,7 +216,9 @@ class ClassificationTrainer(BaseTrainer):
                         if not self.metric_ftns:
                             tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1))
                         else:
-                            tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict)
+                            tepoch.set_postfix(
+                                loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict
+                            )
                         sleep(0.001)
                         # self.writer.add_image("input", data.cpu())
 

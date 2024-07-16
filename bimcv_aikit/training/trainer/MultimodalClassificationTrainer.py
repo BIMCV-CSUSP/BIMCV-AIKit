@@ -30,7 +30,17 @@ class MultimodalClassificationTrainer(ClassificationTrainer):
         len_epoch=None,
     ):
         super().__init__(
-            model, criterion, metric_ftns, optimizer, config, device, train_data_loader, fold, valid_data_loader, lr_scheduler, len_epoch
+            model,
+            criterion,
+            metric_ftns,
+            optimizer,
+            config,
+            device,
+            train_data_loader,
+            fold,
+            valid_data_loader,
+            lr_scheduler,
+            len_epoch,
         )
 
     def _evaluate(self, data_loader):
@@ -107,7 +117,9 @@ class MultimodalClassificationTrainer(ClassificationTrainer):
                     if not self.metric_ftns:
                         tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1))
                     else:
-                        tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict)
+                        tepoch.set_postfix(
+                            loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict
+                        )
                     sleep(0.001)
 
                 if batch_idx == self.len_epoch:  # iteration-based training
@@ -162,7 +174,9 @@ class MultimodalClassificationTrainer(ClassificationTrainer):
                         if not self.metric_ftns:
                             tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1))
                         else:
-                            tepoch.set_postfix(loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict)
+                            tepoch.set_postfix(
+                                loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict
+                            )
                         sleep(0.001)
                         # self.writer.add_image('input', img_data.cpu())
 

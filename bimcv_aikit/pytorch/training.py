@@ -8,7 +8,9 @@ from torch.nn.functional import softmax
 from tqdm import tqdm
 
 
-def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str = "cuda"):
+def evaluate(
+    model, data_loader, metrics: dict, weights: str = None, device: str = "cuda"
+):
     """
     Basic evaluation function for PyTorch models.
 
@@ -28,13 +30,22 @@ def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str
             predictions = softmax(predictions, dim=1)
         for name, metric_fct in metrics.items():
             if "matrix" not in name:
-                metrics_dict[name] = metric_fct(predictions.argmax(dim=1).to("cpu"), labels.argmax(dim=1).to("cpu")).item()
+                metrics_dict[name] = metric_fct(
+                    predictions.argmax(dim=1).to("cpu"), labels.argmax(dim=1).to("cpu")
+                ).item()
             else:
                 print("\nConfusion Matrix")
-                print(metric_fct(predictions.argmax(dim=1).to("cpu"), labels.argmax(dim=1).to("cpu")).numpy())
+                print(
+                    metric_fct(
+                        predictions.argmax(dim=1).to("cpu"),
+                        labels.argmax(dim=1).to("cpu"),
+                    ).numpy()
+                )
 
             metric_fct.reset()
-        print(f"\nResults: \n{', '.join([name+':'+f'{value:.4f}' for name, value in metrics_dict.items()])}")
+        print(
+            f"\nResults: \n{', '.join([name+':'+f'{value:.4f}' for name, value in metrics_dict.items()])}"
+        )
         return predictions, metrics_dict
 
     if weights:
@@ -49,7 +60,9 @@ def evaluate(model, data_loader, metrics: dict, weights: str = None, device: str
     with tqdm(data_loader, unit="batch") as tepoch:
         for batch_data in tepoch:
             tepoch.set_description("Progress")
-            batch_images, batch_labels = batch_data["image"].to(device), batch_data["label"].to(device)
+            batch_images, batch_labels = batch_data["image"].to(device), batch_data[
+                "label"
+            ].to(device)
             with no_grad():
                 labels.append(batch_labels)
                 outputs.append(model(batch_images))
@@ -83,11 +96,19 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
         }
     """
 
-    checkpoint_interval = config["checkpoint_interval"] if "checkpoint_interval" in config else None
+    checkpoint_interval = (
+        config["checkpoint_interval"] if "checkpoint_interval" in config else None
+    )
     device = config["device"] if "device" in config else "cuda"
-    early_stopping = EarlyStopper(**config["early_stopping"]) if "early_stopping" in config else None
+    early_stopping = (
+        EarlyStopper(**config["early_stopping"]) if "early_stopping" in config else None
+    )
     epochs = config["epochs"] if "epochs" in config else 100
-    experiment_name = config["experiment_name"] if "experiment_name" in config else f"{model._get_name()}_{strftime('%d-%b-%Y-%H:%M:%S')}"
+    experiment_name = (
+        config["experiment_name"]
+        if "experiment_name" in config
+        else f"{model._get_name()}_{strftime('%d-%b-%Y-%H:%M:%S')}"
+    )
     if "loss_function" in config:
         loss_function = config["loss_function"]
     else:
@@ -101,10 +122,16 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
         from torch.optim import Adadelta  # Avoid circular imports
 
         loss_function = Adadelta(model.parameters())
-    save_weights_dir = config["save_weights_dir"] if "save_weights_dir" in config else None
+    save_weights_dir = (
+        config["save_weights_dir"] if "save_weights_dir" in config else None
+    )
     scheduler = config["scheduler"] if "scheduler" in config else None
-    tensorboard_writer = config["tensorboard_writer"] if "tensorboard_writer" in config else None
-    validation_interval = config["validation_interval"] if "validation_interval" in config else 1
+    tensorboard_writer = (
+        config["tensorboard_writer"] if "tensorboard_writer" in config else None
+    )
+    validation_interval = (
+        config["validation_interval"] if "validation_interval" in config else 1
+    )
     verbose = config["verbose"] if "verbose" in config else True
 
     killer = GracefulKiller()
@@ -121,7 +148,9 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
         for name, metric_fct in metrics.items():
             metrics_dict[name] = metric_fct.compute()
             if tensorboard_writer:
-                tensorboard_writer.add_scalar(f"{name}/{stage.lower()}", metrics_dict[name], epoch)
+                tensorboard_writer.add_scalar(
+                    f"{name}/{stage.lower()}", metrics_dict[name], epoch
+                )
             metric_fct.reset()
             values.append(f"{metrics_dict[name]:.4f}")
 
@@ -145,7 +174,9 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
         if any(predictions.sum(dim=1) != 1.0):
             predictions = softmax(predictions, dim=1)
         for name, metric_fct in metrics.items():
-            metric_fct(predictions.argmax(dim=1).to("cpu"), labels.argmax(dim=1).to("cpu"))
+            metric_fct(
+                predictions.argmax(dim=1).to("cpu"), labels.argmax(dim=1).to("cpu")
+            )
             metrics_dict[name] = f"{metric_fct.compute():.4f}"
         tepoch.set_postfix(loss=loss.item(), metrics=metrics_dict)
         sleep(0.001)
@@ -173,7 +204,9 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
         with tqdm(train_loader, unit="batch") as tepoch:
             for batch_data in tepoch:
                 tepoch.set_description(f"Training data")
-                inputs, labels = batch_data["image"].to(device), batch_data["label"].to(device)
+                inputs, labels = batch_data["image"].to(device), batch_data["label"].to(
+                    device
+                )
                 optimizer.zero_grad()
                 outputs = model(inputs)
                 loss = loss_function(outputs, labels)
@@ -195,7 +228,9 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
             with tqdm(validation_loader, unit="batch") as tepoch:
                 for val_batch_data in tepoch:
                     tepoch.set_description(f"Validation data")
-                    val_images, val_labels = val_batch_data["image"].to(device), val_batch_data["label"].to(device)
+                    val_images, val_labels = val_batch_data["image"].to(
+                        device
+                    ), val_batch_data["label"].to(device)
                     with no_grad():
                         val_outputs = model(val_images)
                         loss = loss_function(val_outputs, val_labels)
@@ -212,17 +247,24 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
                     best_metric_epoch = epoch + 1
 
                     if save_weights_dir:
-                        save(model.state_dict(), join(save_weights_dir, f"{experiment_name}.pth"))
+                        save(
+                            model.state_dict(),
+                            join(save_weights_dir, f"{experiment_name}.pth"),
+                        )
 
                     if verbose:
-                        print(f"Best metric value: {best_metric:.4f} at epoch {best_metric_epoch}. Saved new best metric model.")
+                        print(
+                            f"Best metric value: {best_metric:.4f} at epoch {best_metric_epoch}. Saved new best metric model."
+                        )
 
         if scheduler:
             scheduler.step(epoch_loss)
 
         if early_stopping:
             if early_stopping(epoch_loss):
-                print(f"Validation loss has not decreased for {early_stopping.count} epochs. Stopping training...")
+                print(
+                    f"Validation loss has not decreased for {early_stopping.count} epochs. Stopping training..."
+                )
                 break
 
         epoch_elapsed_time = time() - start_time
@@ -230,20 +272,29 @@ def train(model, train_loader, validation_loader=None, config: dict = {}):
             print(f"Epoch elapsed time: {epoch_elapsed_time:.4f}")
             print(table)
         if tensorboard_writer:
-            tensorboard_writer.add_scalar("epoch_elapsed_time", epoch_elapsed_time, epoch)
+            tensorboard_writer.add_scalar(
+                "epoch_elapsed_time", epoch_elapsed_time, epoch
+            )
 
         if checkpoint_interval:
             if save_weights_dir and (epoch + 1) % checkpoint_interval == 0:
-                save(model.state_dict(), join(save_weights_dir, f"{experiment_name}_{epoch+1}.pth"))
+                save(
+                    model.state_dict(),
+                    join(save_weights_dir, f"{experiment_name}_{epoch+1}.pth"),
+                )
                 if verbose:
                     print(f"Saved checkpoint at epoch {epoch+1}")
 
         if killer.kill_now:
-            print(f"Received SIGTERM or SIGINT. Terminating training... \nBest metric value: {best_metric:.4f} at epoch: {best_metric_epoch}.")
+            print(
+                f"Received SIGTERM or SIGINT. Terminating training... \nBest metric value: {best_metric:.4f} at epoch: {best_metric_epoch}."
+            )
             break
 
     if verbose and not killer.kill_now:
-        print(f"Training completed, best metric value: {best_metric:.4f} at epoch: {best_metric_epoch}.")
+        print(
+            f"Training completed, best metric value: {best_metric:.4f} at epoch: {best_metric_epoch}."
+        )
     if tensorboard_writer:
         tensorboard_writer.close()
 

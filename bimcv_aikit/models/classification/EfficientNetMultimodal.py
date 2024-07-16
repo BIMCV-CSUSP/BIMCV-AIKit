@@ -50,7 +50,9 @@ class EfficientNetMultimodal(nn.Module):
 
         # Load pretrained weights into EfficientNet if provided
         if pretrained_weights_path:
-            self.vision_backbone.load_state_dict(torch.load(pretrained_weights_path)["state_dict"])
+            self.vision_backbone.load_state_dict(
+                torch.load(pretrained_weights_path)["state_dict"]
+            )
 
         # Define the fully connected layer
         self.fc = nn.Linear(in_num_features + n_classes, n_classes)
@@ -85,7 +87,12 @@ def test():
     width = 96
     in_num_features = 25
     n_classes = 2
-    model = EfficientNetMultimodal(model_name="efficientnet-b0", n_classes=n_classes, in_channels_eff=in_channels, in_num_features=in_num_features)
+    model = EfficientNetMultimodal(
+        model_name="efficientnet-b0",
+        n_classes=n_classes,
+        in_channels_eff=in_channels,
+        in_num_features=in_num_features,
+    )
     x_img = torch.randn(batch_size, in_channels, depth, height, width)
     x_num = torch.randn(batch_size, in_num_features)
     output = model(x_img, x_num)

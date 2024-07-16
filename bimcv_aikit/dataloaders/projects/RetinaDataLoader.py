@@ -1,6 +1,5 @@
 import nibabel as nib
 import numpy as np
-from bimcv_aikit.monai.transforms import DeleteBlackSlices
 from monai import transforms
 from monai.data import CacheDataset, DataLoader
 from numpy import unique
@@ -8,6 +7,8 @@ from pandas import read_csv
 from sklearn.utils.class_weight import compute_class_weight
 from torch import as_tensor
 from torch.nn.functional import one_hot
+
+from bimcv_aikit.monai.transforms import DeleteBlackSlices
 
 config_default = {}
 
@@ -41,9 +42,13 @@ class RetinaDataLoader:
                 transforms.CropForegroundd(keys="image", source_key="image"),
                 transforms.Resized(keys="image", spatial_size=eval(input_shape)),
                 transforms.ScaleIntensityd(keys="image"),
-                transforms.RandRotated(keys="image", range_z=np.pi / 12, prob=0.5, keep_size=True),
+                transforms.RandRotated(
+                    keys="image", range_z=np.pi / 12, prob=0.5, keep_size=True
+                ),
                 transforms.RandFlipd(keys="image", spatial_axis=0, prob=0.5),
-                transforms.RandZoomd(keys="image", min_zoom=0.9, max_zoom=1.1, prob=0.5),
+                transforms.RandZoomd(
+                    keys="image", min_zoom=0.9, max_zoom=1.1, prob=0.5
+                ),
             ]
         )
 
@@ -67,15 +72,23 @@ class RetinaDataLoader:
             {"image": image, "label": label}
             for image, label in zip(
                 self.groupby.get_group(partition)["path_xnat"].values,
-                one_hot(as_tensor(self.groupby.get_group(partition)["label"].values, dtype=int)).float(),
+                one_hot(
+                    as_tensor(
+                        self.groupby.get_group(partition)["label"].values, dtype=int
+                    )
+                ).float(),
             )
         ]
         if self.test_run:
             data = data[:16]
         if partition == "train":
-            dataset = CacheDataset(data=data, transform=self.train_transforms, num_workers=7)
+            dataset = CacheDataset(
+                data=data, transform=self.train_transforms, num_workers=7
+            )
         else:
-            dataset = CacheDataset(data=data, transform=self.val_transforms, num_workers=7)
+            dataset = CacheDataset(
+                data=data, transform=self.val_transforms, num_workers=7
+            )
             self.config_args["shuffle"] = False
         return DataLoader(dataset, **self.config_args)
 

@@ -40,7 +40,11 @@ class BaseTrainer:
 
         cfg_trainer = config["trainer"]
         self.epochs = cfg_trainer["epochs"]
-        self.save_period = cfg_trainer["save_period"] if cfg_trainer["save_period"] else (self.epochs + 1)
+        self.save_period = (
+            cfg_trainer["save_period"]
+            if cfg_trainer["save_period"]
+            else (self.epochs + 1)
+        )
         self.monitor = cfg_trainer.get("monitor", "off")
 
         # configuration to monitor model performance and save best
@@ -62,19 +66,27 @@ class BaseTrainer:
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
         # setup visualization writer instance
-        self.writer = TensorboardWriter(config.log_dir, self.logger, cfg_trainer["tensorboard"])
+        self.writer = TensorboardWriter(
+            config.log_dir, self.logger, cfg_trainer["tensorboard"]
+        )
 
         if config.resume is not None:
             self._resume_checkpoint(config.resume)
 
         self.killer = GracefulKiller()
 
-        self.post_transforms = self._init_transforms(config["post_transforms"]) if config["post_transforms"] else None
+        self.post_transforms = (
+            self._init_transforms(config["post_transforms"])
+            if config["post_transforms"]
+            else None
+        )
 
         self.inferer = config.init_obj("inferer")
 
     @abstractmethod
-    def _evaluate(self, data_loader: torch.utils.data.DataLoader) -> tuple[ndarray, dict]:
+    def _evaluate(
+        self, data_loader: torch.utils.data.DataLoader
+    ) -> tuple[ndarray, dict]:
         """
         Evaluates the PyTorch model using the given data loader.
 
@@ -83,7 +95,9 @@ class BaseTrainer:
         """
         return NotImplementedError
 
-    def evaluate(self, data_loader: torch.utils.data.DataLoader, load_best_weights: bool = True) -> tuple[ndarray, dict]:
+    def evaluate(
+        self, data_loader: torch.utils.data.DataLoader, load_best_weights: bool = True
+    ) -> tuple[ndarray, dict]:
         """
         Evaluates the PyTorch model using the given data loader.
 
@@ -130,8 +144,16 @@ class BaseTrainer:
             table = PrettyTable()
             table.title = f"Performance epoch {epoch}"
             metrics = list(self.metric_ftns.keys()) + ["loss"]
-            train_values = [f"{value:.4f}" for key, value in log.items() if ("val" not in key and key != "epoch")]
-            val_values = [f"{value:.4f}" for key, value in log.items() if ("val" in key and key != "epoch")]
+            train_values = [
+                f"{value:.4f}"
+                for key, value in log.items()
+                if ("val" not in key and key != "epoch")
+            ]
+            val_values = [
+                f"{value:.4f}"
+                for key, value in log.items()
+                if ("val" in key and key != "epoch")
+            ]
             table.add_column("Metrics", metrics)
             table.add_column("Train", train_values)
             if len(val_values) > 0:
@@ -143,11 +165,18 @@ class BaseTrainer:
             if self.mnt_mode != "off":
                 try:
                     # check whether model performance improved or not, according to specified metric(mnt_metric)
-                    improved = (self.mnt_mode == "min" and log[self.mnt_metric] <= self.mnt_best) or (
+                    improved = (
+                        self.mnt_mode == "min" and log[self.mnt_metric] <= self.mnt_best
+                    ) or (
                         self.mnt_mode == "max" and log[self.mnt_metric] >= self.mnt_best
                     )
                 except KeyError:
-                    self.logger.warning("Warning: Metric '{}' is not found. " "Model performance monitoring is disabled.".format(self.mnt_metric))
+                    self.logger.warning(
+                        "Warning: Metric '{}' is not found. "
+                        "Model performance monitoring is disabled.".format(
+                            self.mnt_metric
+                        )
+                    )
                     self.mnt_mode = "off"
                     improved = False
 
@@ -159,13 +188,18 @@ class BaseTrainer:
                     not_improved_count += 1
 
                 if not_improved_count > self.early_stop:
-                    self.logger.info("Validation performance didn't improve for {} epochs. " "Training stops.".format(self.early_stop))
+                    self.logger.info(
+                        "Validation performance didn't improve for {} epochs. "
+                        "Training stops.".format(self.early_stop)
+                    )
                     break
 
             self._save_checkpoint(epoch, save_best=best)
 
             if self.killer.kill_now:
-                self.logger.info(f"Terminating training at epoch {epoch} after receiving SIGTERM or SIGINT...")
+                self.logger.info(
+                    f"Terminating training at epoch {epoch} after receiving SIGTERM or SIGINT..."
+                )
                 break
 
     def _save_checkpoint(self, epoch: int, save_best: bool = False):
@@ -188,7 +222,9 @@ class BaseTrainer:
         weights = {"state_dict": self.model.state_dict()}
         if epoch % self.save_period == 0:
             torch.save(state, str(self.checkpoint_dir / f"checkpoint-epoch{epoch}.pth"))
-            torch.save(weights, str(self.checkpoint_dir / f"model-weights-epoch{epoch}.pth"))
+            torch.save(
+                weights, str(self.checkpoint_dir / f"model-weights-epoch{epoch}.pth")
+            )
             self.logger.info(f"Saving checkpoint epoch {epoch} ...")
         if save_best:
             torch.save(state, str(self.checkpoint_dir / "best-checkpoint.pth"))
@@ -209,16 +245,25 @@ class BaseTrainer:
 
         # load architecture params from checkpoint.
         if checkpoint["config"]["arch"] != self.config["arch"]:
-            raise ValueError("Architecture configuration given in config file is different from that of checkpoint.")
-        weights_path = resume_path.parent.joinpath(resume_path.stem.replace("checkpoint", "model-weights"))
+            raise ValueError(
+                "Architecture configuration given in config file is different from that of checkpoint."
+            )
+        weights_path = resume_path.parent.joinpath(
+            resume_path.stem.replace("checkpoint", "model-weights")
+        )
         if not str(weights_path).endswith(".pth"):
             weights_path = weights_path.with_suffix(".pth")
         print(weights_path)
         self.model.load_state_dict(torch.load(str(weights_path))["state_dict"])
 
         # load optimizer state from checkpoint only when optimizer type is not changed.
-        if checkpoint["config"]["optimizer"]["type"] != self.config["optimizer"]["type"]:
-            self.logger.warning("Optimizer type given in config file is different from that of checkpoint. Optimizer parameters not being resumed.")
+        if (
+            checkpoint["config"]["optimizer"]["type"]
+            != self.config["optimizer"]["type"]
+        ):
+            self.logger.warning(
+                "Optimizer type given in config file is different from that of checkpoint. Optimizer parameters not being resumed."
+            )
         else:
             self.optimizer.load_state_dict(checkpoint["optimizer"])
 
@@ -239,13 +284,20 @@ class BaseTrainer:
                 continue
             try:
                 transform_list = [
-                    init_obj(transform["module"], transform["type"], **transform["args"]) for transform in transform_config["args"]["transforms"]
+                    init_obj(
+                        transform["module"], transform["type"], **transform["args"]
+                    )
+                    for transform in transform_config["args"]["transforms"]
                 ]
             except Exception as e:
                 print(f"Error defining transforms for {partition} partition")
                 raise e
             transform_config["args"]["transforms"] = transform_list
-            transforms[partition] = init_obj(transform_config["module"], transform_config["type"], **transform_config["args"])
+            transforms[partition] = init_obj(
+                transform_config["module"],
+                transform_config["type"],
+                **transform_config["args"],
+            )
         return transforms
 
 

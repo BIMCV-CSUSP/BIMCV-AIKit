@@ -85,7 +85,9 @@ class SwinUnetr_multitask(nn.Module):
 
         # Classification task
         # Perform Global Average Pooling and pass through the classification head.
-        x1 = F.adaptive_avg_pool3d(hidden_states_out[4], (1, 1, 1)).view(hidden_states_out[4].size(0), -1)
+        x1 = F.adaptive_avg_pool3d(hidden_states_out[4], (1, 1, 1)).view(
+            hidden_states_out[4].size(0), -1
+        )
         x1 = F.dropout(F.relu(self.fc1(x1)), self.drop_rate)
         x1 = F.dropout(F.relu(self.fc2(x1)), self.drop_rate)
         x1 = F.dropout(F.relu(self.fc3(x1)), self.drop_rate)

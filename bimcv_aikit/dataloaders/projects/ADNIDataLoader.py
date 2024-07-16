@@ -1,4 +1,3 @@
-from bimcv_aikit.monai.transforms import DeleteBlackSlices
 from monai import transforms
 from monai.data import CacheDataset, DataLoader
 from numpy import array, float32, unique
@@ -6,6 +5,8 @@ from pandas import read_csv
 from sklearn.utils.class_weight import compute_class_weight
 from torch import as_tensor
 from torch.nn.functional import one_hot
+
+from bimcv_aikit.monai.transforms import DeleteBlackSlices
 
 
 class ADNIDataLoader:
@@ -56,7 +57,12 @@ class ADNIDataLoader:
         )
         self.transforms = transforms.Compose(
             [
-                transforms.LoadImaged(keys=["image"], reader="NibabelReader", ensure_channel_first=True, image_only=False),
+                transforms.LoadImaged(
+                    keys=["image"],
+                    reader="NibabelReader",
+                    ensure_channel_first=True,
+                    image_only=False,
+                ),
                 transforms.ToTensord(keys=["image"]),
                 transforms.NormalizeIntensityd(keys=["image"]),
                 transforms.ScaleIntensityd(keys=["image"]),
@@ -80,7 +86,10 @@ class ADNIDataLoader:
         """
         data = [
             {"image": img_path, "label": label}
-            for img_path, label in zip(self.groupby.get_group(partition)["Path"].values, self.groupby.get_group(partition)["onehot"].values)
+            for img_path, label in zip(
+                self.groupby.get_group(partition)["Path"].values,
+                self.groupby.get_group(partition)["onehot"].values,
+            )
         ]
         if self.test_run:
             data = data[:16]
@@ -124,7 +133,16 @@ class ADNIMultimodalDataLoader(ADNIDataLoader):
             partition_column (str, optional): The name of the column in the file that contains the partition. Defalts to Partition".
             config (dict, optional): A dictionary of configuration options. Defaults to {}.
         """
-        super().__init__(path, sep, classes, map_labels_dict, test_run, input_shape, partition_column, config)
+        super().__init__(
+            path,
+            sep,
+            classes,
+            map_labels_dict,
+            test_run,
+            input_shape,
+            partition_column,
+            config,
+        )
         self.clinical_cols = [
             "PTGENDER",
             "APOE4",
@@ -154,7 +172,12 @@ class ADNIMultimodalDataLoader(ADNIDataLoader):
         ]
         self.transforms = transforms.Compose(
             [
-                transforms.LoadImaged(keys=["image"], reader="NibabelReader", ensure_channel_first=True, image_only=False),
+                transforms.LoadImaged(
+                    keys=["image"],
+                    reader="NibabelReader",
+                    ensure_channel_first=True,
+                    image_only=False,
+                ),
                 transforms.ToTensord(keys=["image", "numeric"]),
                 transforms.NormalizeIntensityd(keys=["image"]),
                 transforms.ScaleIntensityd(keys=["image"]),
@@ -176,8 +199,13 @@ class ADNIMultimodalDataLoader(ADNIDataLoader):
         """
         paths = self.groupby.get_group(partition)["Path"].values
         labels = self.groupby.get_group(partition)["onehot"].values
-        clinical_variables = array(self.groupby.get_group(partition)[self.clinical_cols].values, dtype=float32)
-        data = [{"image": img_path, "label": label, "numeric": clinical} for img_path, label, clinical in zip(paths, labels, clinical_variables)]
+        clinical_variables = array(
+            self.groupby.get_group(partition)[self.clinical_cols].values, dtype=float32
+        )
+        data = [
+            {"image": img_path, "label": label, "numeric": clinical}
+            for img_path, label, clinical in zip(paths, labels, clinical_variables)
+        ]
         if self.test_run:
             data = data[:16]
         dataset = CacheDataset(data=data, transform=self.transforms, num_workers=7)

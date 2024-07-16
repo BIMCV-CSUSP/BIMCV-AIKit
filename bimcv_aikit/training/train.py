@@ -1,16 +1,18 @@
 import argparse
-import collections
 import importlib
 import json
 from functools import partial
 
 import numpy as np
 import torch
+from prettytable import PrettyTable
 
 from ..metrics.BaseMetric import BaseMetric
-from ..metrics.segmentation.metrics_segmentation import metrics_segmentation_constructor_monai
+from ..metrics.segmentation.metrics_segmentation import (
+    metrics_segmentation_constructor_monai,
+)
 from . import trainer as module_trainer
-from .parse_config import ConfigParser
+from .parse_config import ConfigParser, CustomArgs
 from .utils import prepare_device
 
 # fix random seeds for reproducibility
@@ -20,19 +22,35 @@ torch.backends.cudnn.benchmark = False
 
 def main():
     args = argparse.ArgumentParser(description="PyTorch Template")
-    args.add_argument("-c", "--config", required=True, type=str, help="config file path")
-    args.add_argument("-r", "--resume", default=None, type=str, help="path to latest checkpoint (default: None)")
-    args.add_argument("-d", "--device", default=None, type=str, help="indices of GPUs to enable (default: all)")
+    args.add_argument(
+        "-c", "--config", required=True, type=str, help="config file path"
+    )
+    args.add_argument(
+        "-r",
+        "--resume",
+        default=None,
+        type=str,
+        help="path to latest checkpoint (default: None)",
+    )
+    args.add_argument(
+        "-d",
+        "--device",
+        default=None,
+        type=str,
+        help="indices of GPUs to enable (default: all)",
+    )
 
     # custom cli options to modify configuration from default values given in json file.
-    CustomArgs = collections.namedtuple("CustomArgs", "flags type target")
+    # CustomArgs = collections.namedtuple("CustomArgs", "flags type target")
     options = [
         CustomArgs(["--lr", "--learning_rate"], type=float, target="optimizer;args;lr"),
-        CustomArgs(["--bs", "--batch_size"], type=int, target="data_loader;args;batch_size"),
+        CustomArgs(
+            ["--bs", "--batch_size"], type=int, target="data_loader;args;batch_size"
+        ),
     ]
     config = ConfigParser.from_args(args, options)
 
-    SEED = config["seed"] if config["seed"] else torch.ranint(1, 10000)
+    SEED = config["seed"] if config["seed"] else torch.randint(1, 10000)
     torch.manual_seed(SEED)
     np.random.seed(SEED)
 
@@ -47,30 +65,40 @@ def main():
 
     # prepare for (multi-device) GPU training
     device, device_ids = prepare_device(config["n_gpu"])
-    model = model.to(device)
+    model = model.to(device)  # type: ignore
     if len(device_ids) > 1:
         model = torch.nn.DataParallel(model, device_ids=device_ids)
 
     # get function handles of loss and metrics
-    if data_loader.class_weights is None:
+    if data_loader.class_weights is None:  # type: ignore
         criterion = config.init_obj("loss")
     else:
-        criterion = config.init_obj("loss", **{"weight": torch.tensor(data_loader.class_weights).to(device)})
+        criterion = config.init_obj(
+            "loss", **{"weight": torch.tensor(data_loader.class_weights).to(device)}  # type: ignore
+        )
 
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = config.init_obj("optimizer", torch.optim, trainable_params)
-    lr_scheduler = config.init_obj("lr_scheduler", torch.optim.lr_scheduler, optimizer) if config["lr_scheduler"] else None
+    lr_scheduler = (
+        config.init_obj("lr_scheduler", torch.optim.lr_scheduler, optimizer)
+        if config["lr_scheduler"]
+        else None
+    )
 
-    train_loader = data_loader(config["data_loader"]["partitions"]["train"])
-    valid_loader = data_loader(config["data_loader"]["partitions"]["val"])
+    train_loader = data_loader(config["data_loader"]["partitions"]["train"])  # type: ignore
+    valid_loader = data_loader(config["data_loader"]["partitions"]["val"])  # type: ignore
 
     metrics = {}
     for name, met in config["metrics"].items():
-        metric = partial(getattr(importlib.import_module(met["module"]), met["type"]), **met["args"])
+        metric = partial(
+            getattr(importlib.import_module(met["module"]), met["type"]), **met["args"]
+        )
 
         if "monai" in met["module"]:
-            metrics[name] = metrics_segmentation_constructor_monai(original_metric=metric)
+            metrics[name] = metrics_segmentation_constructor_monai(
+                original_metric=metric
+            )
         else:
             metrics[name] = BaseMetric(metric)
 
@@ -102,7 +130,7 @@ def main():
 
     del train_loader, valid_loader
 
-    test_loader = data_loader(config["data_loader"]["partitions"]["test"])
+    test_loader = data_loader(config["data_loader"]["partitions"]["test"])  # type: ignore
     if test_loader:
         test_predictions, test_results = trainer.evaluate(test_loader)
         results["Test Metrics"] = test_results
@@ -110,6 +138,22 @@ def main():
 
     with open(f"{config.log_dir}/results.json", "w") as json_file:
         json.dump(results, json_file, ensure_ascii=False, indent=4)
+
+    table = PrettyTable()
+    table.title = "Final Performance Metrics"
+    metrics = list(results["Train Metrics"].keys())
+    table.add_column("Metrics", metrics)
+    train_values = [f"{value:.4f}" for _, value in results["Train Metrics"].items()]
+    table.add_column("Train", train_values)
+    if "Validation Metrics" in results:
+        validation_values = [
+            f"{value:.4f}" for _, value in results["Validation Metrics"].items()
+        ]
+        table.add_column("Validation", validation_values)
+    if "Test Metrics" in results:
+        test_values = [f"{value:.4f}" for _, value in results["Test Metrics"].items()]
+        table.add_column("Test", test_values)
+    logger.info(table)
 
 
 if __name__ == "__main__":

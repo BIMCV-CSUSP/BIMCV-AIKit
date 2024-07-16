@@ -17,7 +17,12 @@ class BaseMetric(Cumulative, IterationMetric):
         self.metric = metric
         self.reduction = reduction
 
-    def __call__(self, y_pred: Union[torch.Tensor, list], y: Union[torch.Tensor, list, None] = None, **kwargs) -> Union[torch.Tensor, list]:
+    def __call__(
+        self,
+        y_pred: Union[torch.Tensor, list],
+        y: Union[torch.Tensor, list, None] = None,
+        **kwargs,
+    ) -> Union[torch.Tensor, list]:
         """
         Execute basic computation for model prediction and ground truth.
         It can support  both `list of channel-first torch.Tensor` and `batch-first Tensor`.
@@ -36,15 +41,21 @@ class BaseMetric(Cumulative, IterationMetric):
             a `batch-first` tensor (BC[HWD]) or a list of `batch-first` tensors.
         """
         ret = super().__call__(y_pred=y_pred, y=y, **kwargs)
-        if isinstance(ret, (tuple, list)):  # First two cases account for image metrics (more than one dimension)
+        if isinstance(
+            ret, (tuple, list)
+        ):  # First two cases account for image metrics (more than one dimension)
             self.extend(*ret)
         elif isinstance(ret, torch.Tensor) and ret.ndim > 1:
             self.extend(ret)
-        elif isinstance(ret, torch.Tensor) and ret.ndim <= 1:  # This case accounts for single float value metric
+        elif (
+            isinstance(ret, torch.Tensor) and ret.ndim <= 1
+        ):  # This case accounts for single float value metric
             self.append(ret)
         return ret
 
-    def _compute_tensor(self, predictions: torch.Tensor, labels: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+    def _compute_tensor(
+        self, predictions: torch.Tensor, labels: torch.Tensor, *args, **kwargs
+    ) -> torch.Tensor:
         """
         Args:
             predictions: input data to compute, typical model output.
@@ -54,10 +65,14 @@ class BaseMetric(Cumulative, IterationMetric):
             ValueError: when predictions and labels are of different shape.
         """
         if predictions.shape != labels.shape:
-            raise ValueError(f"Predictions and labels must have same shapes, got {predictions.shape} and {labels.shape}.")
+            raise ValueError(
+                f"Predictions and labels must have same shapes, got {predictions.shape} and {labels.shape}."
+            )
         return self.metric(predictions, labels, *args, **kwargs)
 
-    def compute(self, reduction: Union[MetricReduction, str, None] = None) -> Union[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
+    def compute(
+        self, reduction: Union[MetricReduction, str, None] = None
+    ) -> Union[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
         """
         Execute reduction logic for the output of `metric`.
 
@@ -101,5 +116,8 @@ def do_1d_metric_reduction(f: torch.Tensor, reduction: str = "mean") -> torch.Te
     elif reduction == "sum":
         f = torch.sum(f)
     else:
-        raise ValueError(f"Unsupported reduction: {reduction}, available options are " '["mean", "sum", "none"].')
+        raise ValueError(
+            f"Unsupported reduction: {reduction}, available options are "
+            '["mean", "sum", "none"].'
+        )
     return f

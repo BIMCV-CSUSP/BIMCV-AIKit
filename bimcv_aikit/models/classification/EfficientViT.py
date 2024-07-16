@@ -52,7 +52,10 @@ class EfficientViT(nn.Module):
             EfficientNet.load_state_dict(torch.load(pretrained_weights_path))
 
         # Use certain layers from EfficientNet for feature extraction
-        layers = list(EfficientNet.children())[:3] + list(EfficientNet._blocks.children())[:2]
+        layers = (
+            list(EfficientNet.children())[:3]
+            + list(EfficientNet._blocks.children())[:2]
+        )
         self.features = nn.Sequential(*layers)
 
         # Define the Vision Transformer model for classification

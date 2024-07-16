@@ -22,7 +22,9 @@ class metrics_classification_multitask:
         self.metric = original_metric
 
     def __call__(self, preds: torch.Tensor, target: torch.Tensor) -> None:
-        preds_, targets = preds[1].argmax(dim=-1).to("cpu"), target[1].argmax(dim=-1).to("cpu")
+        preds_, targets = preds[1].argmax(dim=-1).to("cpu"), target[1].argmax(
+            dim=-1
+        ).to("cpu")
         self.metric(preds_, targets)
         return self.compute()
 
@@ -61,5 +63,9 @@ if __name__ == "__main__":
     from torchmetrics import Accuracy
 
     n_classes = 2
-    Accuracy_multitask = metrics_classification_multitask(original_metric=Accuracy(task="multiclass", average="weighted", num_classes=n_classes))
+    Accuracy_multitask = metrics_classification_multitask(
+        original_metric=Accuracy(
+            task="multiclass", average="weighted", num_classes=n_classes
+        )
+    )
     test()

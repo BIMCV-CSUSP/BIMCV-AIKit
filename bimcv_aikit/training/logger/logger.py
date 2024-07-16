@@ -7,7 +7,11 @@ from ..utils import read_json
 this_file_path = Path(__file__).parent
 
 
-def setup_logging(save_dir, log_config=this_file_path.joinpath("logger_config.json"), default_level=logging.INFO):
+def setup_logging(
+    save_dir,
+    log_config=this_file_path.joinpath("logger_config.json"),
+    default_level=logging.INFO,
+):
     """
     Setup logging configuration
     """
@@ -21,5 +25,7 @@ def setup_logging(save_dir, log_config=this_file_path.joinpath("logger_config.js
 
         logging.config.dictConfig(config)
     else:
-        print("Warning: logging configuration file is not found in {}.".format(log_config))
+        print(
+            "Warning: logging configuration file is not found in {}.".format(log_config)
+        )
         logging.basicConfig(level=default_level)

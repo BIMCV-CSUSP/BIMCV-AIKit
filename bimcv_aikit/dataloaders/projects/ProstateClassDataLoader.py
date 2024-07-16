@@ -1,5 +1,4 @@
 import nibabel as nib
-from bimcv_aikit.monai.transforms import DeleteBlackSlices
 from monai import transforms
 from monai.data import CacheDataset, DataLoader
 from numpy import array, float32, unique
@@ -7,6 +6,8 @@ from pandas import read_csv
 from sklearn.utils.class_weight import compute_class_weight
 from torch import as_tensor
 from torch.nn.functional import one_hot
+
+from bimcv_aikit.monai.transforms import DeleteBlackSlices
 
 config_default = {}
 
@@ -29,9 +30,15 @@ class ProstateClassDataLoader:
         self.format_load = format_load
         format_load = "cropped"  #'nifti', mha, cropped
 
-        df["depth"] = df["filepath_t2w_" + self.format_load].apply(lambda path_file: nib.load(path_file).shape[0])
-        df["heigth"] = df["filepath_t2w_" + self.format_load].apply(lambda path_file: nib.load(path_file).shape[1])
-        df["weigth"] = df["filepath_t2w_" + self.format_load].apply(lambda path_file: nib.load(path_file).shape[2])
+        df["depth"] = df["filepath_t2w_" + self.format_load].apply(
+            lambda path_file: nib.load(path_file).shape[0]
+        )
+        df["heigth"] = df["filepath_t2w_" + self.format_load].apply(
+            lambda path_file: nib.load(path_file).shape[1]
+        )
+        df["weigth"] = df["filepath_t2w_" + self.format_load].apply(
+            lambda path_file: nib.load(path_file).shape[2]
+        )
         df = df[(df["heigth"] != 0) & (df["depth"] != 0)]
         df = df[df["filepath_t2w_" + self.format_load].notna()].reset_index()
 
@@ -47,7 +54,11 @@ class ProstateClassDataLoader:
         )
         self.train_transforms = transforms.Compose(
             [
-                transforms.LoadImaged(keys=img_columns + ["zones"], reader="NibabelReader", image_only=True),
+                transforms.LoadImaged(
+                    keys=img_columns + ["zones"],
+                    reader="NibabelReader",
+                    image_only=True,
+                ),
                 transforms.EnsureChannelFirstd(keys=img_columns + ["zones"]),
                 transforms.AsDiscreted(keys="zones", argmax=False, to_onehot=3),
                 transforms.LabelToMaskd(keys="zones", select_labels=[1, 2]),
@@ -63,7 +74,9 @@ class ProstateClassDataLoader:
                 ),  # SAMUNETR: Reshape to have the same dimension
                 transforms.ScaleIntensityd(keys=img_columns, minv=0.0, maxv=1.0),
                 transforms.NormalizeIntensityd(keys=img_columns),
-                transforms.ConcatItemsd(keys=img_columns + ["zones"], name="image", dim=0),
+                transforms.ConcatItemsd(
+                    keys=img_columns + ["zones"], name="image", dim=0
+                ),
                 # transforms.RandCropByPosNegLabeld(keys=["image"], label_key="zones", spatial_size=[96, 96, 32],num_samples=4,image_key="image",image_threshold=0)
                 # transforms.RandSpatialCropSamplesd(keys=['image','label'],roi_size=[96,96,-1],num_samples=8,random_size=False),#For the other models
                 # transforms.RandRotate90d(keys=['image'],spatial_axes=0,prob=prob),
@@ -92,7 +105,9 @@ class ProstateClassDataLoader:
                 ),  # SAMUNETR: Reshape to have the same dimension
                 transforms.ScaleIntensityd(keys=img_columns, minv=0.0, maxv=1.0),
                 transforms.NormalizeIntensityd(keys=img_columns),
-                transforms.ConcatItemsd(keys=img_columns + ["zones"], name="image", dim=0),
+                transforms.ConcatItemsd(
+                    keys=img_columns + ["zones"], name="image", dim=0
+                ),
             ]
         )
         self.test_run = test_run
@@ -102,19 +117,31 @@ class ProstateClassDataLoader:
         data = [
             {"t2": t2, "adc": adc, "dwi": dwi, "label": label, "zones": zone}
             for t2, adc, dwi, label, zone in zip(
-                self.groupby.get_group(partition)["filepath_t2w_" + self.format_load].values,
-                self.groupby.get_group(partition)["filepath_adc_" + self.format_load].values,
-                self.groupby.get_group(partition)["filepath_hbv_" + self.format_load].values,
-                one_hot(as_tensor(self.groupby.get_group(partition)["label"].values)).float(),
+                self.groupby.get_group(partition)[
+                    "filepath_t2w_" + self.format_load
+                ].values,
+                self.groupby.get_group(partition)[
+                    "filepath_adc_" + self.format_load
+                ].values,
+                self.groupby.get_group(partition)[
+                    "filepath_hbv_" + self.format_load
+                ].values,
+                one_hot(
+                    as_tensor(self.groupby.get_group(partition)["label"].values)
+                ).float(),
                 self.groupby.get_group(partition)["filepath_seg_zones_cropped"].values,
             )
         ]
         if self.test_run:
             data = data[:16]
         if partition == "train":
-            dataset = CacheDataset(data=data, transform=self.train_transforms, num_workers=7)
+            dataset = CacheDataset(
+                data=data, transform=self.train_transforms, num_workers=7
+            )
         else:
-            dataset = CacheDataset(data=data, transform=self.val_transforms, num_workers=7)
+            dataset = CacheDataset(
+                data=data, transform=self.val_transforms, num_workers=7
+            )
             self.config_args["shuffle"] = False
         return DataLoader(dataset, **self.config_args)
 
@@ -137,11 +164,26 @@ class ProstateMultimodalDataLoader(ProstateClassDataLoader):
         partition_column: str = "partition",
         config: dict = config_default,
     ):
-        super().__init__(path, sep, classes, format_load, img_columns, test_run, input_shape, rand_prob, partition_column, config)
+        super().__init__(
+            path,
+            sep,
+            classes,
+            format_load,
+            img_columns,
+            test_run,
+            input_shape,
+            rand_prob,
+            partition_column,
+            config,
+        )
         self.clinical_cols = ["patient_age", "psa", "psad", "prostate_volume"]
         self.train_transforms = transforms.Compose(
             [
-                transforms.LoadImaged(keys=img_columns + ["zones"], reader="NibabelReader", image_only=True),
+                transforms.LoadImaged(
+                    keys=img_columns + ["zones"],
+                    reader="NibabelReader",
+                    image_only=True,
+                ),
                 transforms.EnsureChannelFirstd(keys=img_columns + ["zones"]),
                 transforms.AsDiscreted(keys="zones", argmax=False, to_onehot=3),
                 transforms.LabelToMaskd(keys="zones", select_labels=[1, 2]),
@@ -157,7 +199,9 @@ class ProstateMultimodalDataLoader(ProstateClassDataLoader):
                 ),  # SAMUNETR: Reshape to have the same dimension
                 transforms.ScaleIntensityd(keys=img_columns, minv=0.0, maxv=1.0),
                 transforms.NormalizeIntensityd(keys=img_columns),
-                transforms.ConcatItemsd(keys=img_columns + ["zones"], name="image", dim=0),
+                transforms.ConcatItemsd(
+                    keys=img_columns + ["zones"], name="image", dim=0
+                ),
                 transforms.ToTensord(keys=["numeric"]),
                 # transforms.RandCropByPosNegLabeld(keys=["image"], label_key="zones", spatial_size=[96, 96, 32],num_samples=4,image_key="image",image_threshold=0)
                 # transforms.RandSpatialCropSamplesd(keys=['image','label'],roi_size=[96,96,-1],num_samples=8,random_size=False),#For the other models
@@ -187,7 +231,9 @@ class ProstateMultimodalDataLoader(ProstateClassDataLoader):
                 ),  # SAMUNETR: Reshape to have the same dimension
                 transforms.ScaleIntensityd(keys=img_columns, minv=0.0, maxv=1.0),
                 transforms.NormalizeIntensityd(keys=img_columns),
-                transforms.ConcatItemsd(keys=img_columns + ["zones"], name="image", dim=0),
+                transforms.ConcatItemsd(
+                    keys=img_columns + ["zones"], name="image", dim=0
+                ),
                 transforms.ToTensord(keys=["numeric"]),
             ]
         )
@@ -195,14 +241,31 @@ class ProstateMultimodalDataLoader(ProstateClassDataLoader):
         self.config_args = config
 
     def __call__(self, partition: str):
-        clinical_variables = array(self.groupby.get_group(partition)[self.clinical_cols].values, dtype=float32)
+        clinical_variables = array(
+            self.groupby.get_group(partition)[self.clinical_cols].values, dtype=float32
+        )
         data = [
-            {"t2": t2, "adc": adc, "dwi": dwi, "label": label, "zones": zone, "numeric": clinical}
+            {
+                "t2": t2,
+                "adc": adc,
+                "dwi": dwi,
+                "label": label,
+                "zones": zone,
+                "numeric": clinical,
+            }
             for t2, adc, dwi, label, zone, clinical in zip(
-                self.groupby.get_group(partition)["filepath_t2w_" + self.format_load].values,
-                self.groupby.get_group(partition)["filepath_adc_" + self.format_load].values,
-                self.groupby.get_group(partition)["filepath_hbv_" + self.format_load].values,
-                one_hot(as_tensor(self.groupby.get_group(partition)["label"].values)).float(),
+                self.groupby.get_group(partition)[
+                    "filepath_t2w_" + self.format_load
+                ].values,
+                self.groupby.get_group(partition)[
+                    "filepath_adc_" + self.format_load
+                ].values,
+                self.groupby.get_group(partition)[
+                    "filepath_hbv_" + self.format_load
+                ].values,
+                one_hot(
+                    as_tensor(self.groupby.get_group(partition)["label"].values)
+                ).float(),
                 self.groupby.get_group(partition)["filepath_seg_zones_cropped"].values,
                 clinical_variables,
             )
@@ -210,9 +273,13 @@ class ProstateMultimodalDataLoader(ProstateClassDataLoader):
         if self.test_run:
             data = data[:16]
         if partition == "train":
-            dataset = CacheDataset(data=data, transform=self.train_transforms, num_workers=7)
+            dataset = CacheDataset(
+                data=data, transform=self.train_transforms, num_workers=7
+            )
         else:
-            dataset = CacheDataset(data=data, transform=self.val_transforms, num_workers=7)
+            dataset = CacheDataset(
+                data=data, transform=self.val_transforms, num_workers=7
+            )
             self.config_args["shuffle"] = False
         return DataLoader(dataset, **self.config_args)
 

@@ -1,194 +1,194 @@
 {
-    "name": "Mnist_LeNet",
-    "task": "classification",
-    "n_gpu": 0,
-    "seed": 42,
-    "arch": {
-        "module": "bimcv_aikit.models.classification",
-        "type": "MnistModel",
-        "args": {}
+  "name": "Mnist_LeNet",
+  "task": "classification",
+  "n_gpu": 0,
+  "seed": 42,
+  "arch": {
+    "module": "bimcv_aikit.models.classification",
+    "type": "MnistModel",
+    "args": {}
+  },
+  "data_loader": {
+    "module": "bimcv_aikit.dataloaders",
+    "type": "MnistDataLoader",
+    "partitions": {
+      "folds": [
+        "Fold 0",
+        "Fold 1",
+        "Fold 2",
+        "Fold 3",
+        "Fold 4"
+      ],
+      "train": "train",
+      "val": "val",
+      "test": "test"
     },
-    "data_loader": {
-        "module": "bimcv_aikit.dataloaders",
-        "type": "MnistDataLoader",
-        "partitions": {
-            "folds": [
-                "Fold 0",
-                "Fold 1",
-                "Fold 2",
-                "Fold 3",
-                "Fold 4"
-            ],
-            "train": "train",
-            "val": "val",
-            "test": "test"
-        },
-        "args": {
-            "data_dir": "data/",
-            "batch_size": 128,
-            "shuffle": true,
-            "num_workers": 1,
-            "transforms": {
-                "train": {
-                    "module": "torchvision.transforms",
-                    "type": "Compose",
-                    "args": {
-                        "transforms": [
-                            {
-                                "module": "torchvision.transforms",
-                                "type": "ToTensor",
-                                "args": {}
-                            },
-                            {
-                                "module": "torchvision.transforms",
-                                "type": "Normalize",
-                                "args": {
-                                    "mean": [
-                                        0.1307
-                                    ],
-                                    "std": [
-                                        0.3081
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                },
-                "test": {
-                    "module": "torchvision.transforms",
-                    "type": "Compose",
-                    "args": {
-                        "transforms": [
-                            {
-                                "module": "torchvision.transforms",
-                                "type": "ToTensor",
-                                "args": {}
-                            },
-                            {
-                                "module": "torchvision.transforms",
-                                "type": "Normalize",
-                                "args": {
-                                    "mean": [
-                                        0.1307
-                                    ],
-                                    "std": [
-                                        0.3081
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                },
-                "val": {}
-            }
-        }
-    },
-    "optimizer": {
-        "type": "Adam",
-        "args": {
-            "lr": 0.001,
-            "weight_decay": 0,
-            "amsgrad": true
-        }
-    },
-    "loss": {
-        "module": "torch.nn",
-        "type": "CrossEntropyLoss",
-        "args": {}
-    },
-    "metrics": {
-        "accuracy": {
-            "module": "torchmetrics.functional.classification",
-            "type": "accuracy",
-            "args": {
-                "task": "multiclass",
-                "average": "weighted",
-                "num_classes": 10
-            }
-        },
-        "specificity": {
-            "module": "torchmetrics.functional.classification",
-            "type": "specificity",
-            "args": {
-                "task": "multiclass",
-                "average": "weighted",
-                "num_classes": 10
-            }
-        }
-    },
-    "lr_scheduler": {
-        "type": "StepLR",
-        "args": {
-            "step_size": 50,
-            "gamma": 0.1
-        }
-    },
-    "trainer": {
-        "type": "ClassificationTrainer",
-        "epochs": 100,
-        "save_dir": "saved/",
-        "save_period": null,
-        "verbosity": 2,
-        "monitor": "min loss",
-        "early_stop": 10,
-        "tensorboard": false
-    },
-    "post_transforms": {
+    "args": {
+      "data_dir": "data/",
+      "batch_size": 128,
+      "shuffle": true,
+      "num_workers": 1,
+      "transforms": {
         "train": {
-            "module": "torchvision.transforms",
-            "type": "Compose",
-            "args": {
-                "transforms": [
-                    {
-                        "module": "torchvision.transforms",
-                        "type": "ToTensor",
-                        "args": {}
-                    },
-                    {
-                        "module": "torchvision.transforms",
-                        "type": "Normalize",
-                        "args": {
-                            "mean": [
-                                0.1307
-                            ],
-                            "std": [
-                                0.3081
-                            ]
-                        }
-                    }
-                ]
-            }
+          "module": "torchvision.transforms",
+          "type": "Compose",
+          "args": {
+            "transforms": [
+              {
+                "module": "torchvision.transforms",
+                "type": "ToTensor",
+                "args": {}
+              },
+              {
+                "module": "torchvision.transforms",
+                "type": "Normalize",
+                "args": {
+                  "mean": [
+                    0.1307
+                  ],
+                  "std": [
+                    0.3081
+                  ]
+                }
+              }
+            ]
+          }
         },
         "test": {
-            "module": "torchvision.transforms",
-            "type": "Compose",
-            "args": {
-                "transforms": [
-                    {
-                        "module": "torchvision.transforms",
-                        "type": "ToTensor",
-                        "args": {}
-                    },
-                    {
-                        "module": "torchvision.transforms",
-                        "type": "Normalize",
-                        "args": {
-                            "mean": [
-                                0.1307
-                            ],
-                            "std": [
-                                0.3081
-                            ]
-                        }
-                    }
-                ]
-            }
+          "module": "torchvision.transforms",
+          "type": "Compose",
+          "args": {
+            "transforms": [
+              {
+                "module": "torchvision.transforms",
+                "type": "ToTensor",
+                "args": {}
+              },
+              {
+                "module": "torchvision.transforms",
+                "type": "Normalize",
+                "args": {
+                  "mean": [
+                    0.1307
+                  ],
+                  "std": [
+                    0.3081
+                  ]
+                }
+              }
+            ]
+          }
         },
         "val": {}
-    },
-    "inferer": {
-        "module": "monai.inferers",
-        "type": "SimpleInferer",
-        "args": {}
+      }
     }
+  },
+  "optimizer": {
+    "type": "Adam",
+    "args": {
+      "lr": 0.001,
+      "weight_decay": 0,
+      "amsgrad": true
+    }
+  },
+  "loss": {
+    "module": "torch.nn",
+    "type": "CrossEntropyLoss",
+    "args": {}
+  },
+  "metrics": {
+    "accuracy": {
+      "module": "torchmetrics.functional.classification",
+      "type": "accuracy",
+      "args": {
+        "task": "multiclass",
+        "average": "weighted",
+        "num_classes": 10
+      }
+    },
+    "specificity": {
+      "module": "torchmetrics.functional.classification",
+      "type": "specificity",
+      "args": {
+        "task": "multiclass",
+        "average": "weighted",
+        "num_classes": 10
+      }
+    }
+  },
+  "lr_scheduler": {
+    "type": "StepLR",
+    "args": {
+      "step_size": 50,
+      "gamma": 0.1
+    }
+  },
+  "trainer": {
+    "type": "ClassificationTrainer",
+    "epochs": 5,
+    "save_dir": "saved/",
+    "save_period": null,
+    "verbosity": 2,
+    "monitor": "min loss",
+    "early_stop": 10,
+    "tensorboard": false
+  },
+  "post_transforms": {
+    "train": {
+      "module": "torchvision.transforms",
+      "type": "Compose",
+      "args": {
+        "transforms": [
+          {
+            "module": "torchvision.transforms",
+            "type": "ToTensor",
+            "args": {}
+          },
+          {
+            "module": "torchvision.transforms",
+            "type": "Normalize",
+            "args": {
+              "mean": [
+                0.1307
+              ],
+              "std": [
+                0.3081
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "test": {
+      "module": "torchvision.transforms",
+      "type": "Compose",
+      "args": {
+        "transforms": [
+          {
+            "module": "torchvision.transforms",
+            "type": "ToTensor",
+            "args": {}
+          },
+          {
+            "module": "torchvision.transforms",
+            "type": "Normalize",
+            "args": {
+              "mean": [
+                0.1307
+              ],
+              "std": [
+                0.3081
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "val": {}
+  },
+  "inferer": {
+    "module": "monai.inferers",
+    "type": "SimpleInferer",
+    "args": {}
+  }
 }

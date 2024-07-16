@@ -14,7 +14,12 @@ def main(config):
 
     # setup data_loader instances
     data_loader = getattr(module_data, config["data_loader"]["type"])(
-        config["data_loader"]["args"]["data_dir"], batch_size=512, shuffle=False, validation_split=0.0, training=False, num_workers=2
+        config["data_loader"]["args"]["data_dir"],
+        batch_size=512,
+        shuffle=False,
+        validation_split=0.0,
+        training=False,
+        num_workers=2,
     )
 
     # build model architecture
@@ -58,15 +63,38 @@ def main(config):
 
     n_samples = len(data_loader.sampler)
     log = {"loss": total_loss / n_samples}
-    log.update({met.__name__: total_metrics[i].item() / n_samples for i, met in enumerate(metric_fns)})
+    log.update(
+        {
+            met.__name__: total_metrics[i].item() / n_samples
+            for i, met in enumerate(metric_fns)
+        }
+    )
     logger.info(log)
 
 
 if __name__ == "__main__":
     args = argparse.ArgumentParser(description="PyTorch Template")
-    args.add_argument("-c", "--config", default=None, type=str, help="config file path (default: None)")
-    args.add_argument("-r", "--resume", default=None, type=str, help="path to latest checkpoint (default: None)")
-    args.add_argument("-d", "--device", default=None, type=str, help="indices of GPUs to enable (default: all)")
+    args.add_argument(
+        "-c",
+        "--config",
+        default=None,
+        type=str,
+        help="config file path (default: None)",
+    )
+    args.add_argument(
+        "-r",
+        "--resume",
+        default=None,
+        type=str,
+        help="path to latest checkpoint (default: None)",
+    )
+    args.add_argument(
+        "-d",
+        "--device",
+        default=None,
+        type=str,
+        help="indices of GPUs to enable (default: all)",
+    )
 
     config = ConfigParser.from_args(args)
     main(config)

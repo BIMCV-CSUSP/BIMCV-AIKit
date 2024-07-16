@@ -8,7 +8,9 @@ import numpy as np
 import torch
 
 from ..metrics.BaseMetric import BaseMetric
-from ..metrics.segmentation.metrics_segmentation import metrics_segmentation_constructor_monai
+from ..metrics.segmentation.metrics_segmentation import (
+    metrics_segmentation_constructor_monai,
+)
 from . import trainer as module_trainer
 from .parse_config import ConfigParser
 from .utils import prepare_device
@@ -20,15 +22,27 @@ torch.backends.cudnn.benchmark = False
 
 def main():
     args = argparse.ArgumentParser(description="PyTorch Template")
-    args.add_argument("-c", "--config", required=True, type=str, help="config file path")
-    args.add_argument("-r", "--resume", required=True, type=str, help="path to checkpoint")
-    args.add_argument("-d", "--device", default=None, type=str, help="indices of GPUs to enable (default: all)")
+    args.add_argument(
+        "-c", "--config", required=True, type=str, help="config file path"
+    )
+    args.add_argument(
+        "-r", "--resume", required=True, type=str, help="path to checkpoint"
+    )
+    args.add_argument(
+        "-d",
+        "--device",
+        default=None,
+        type=str,
+        help="indices of GPUs to enable (default: all)",
+    )
 
     # custom cli options to modify configuration from default values given in json file.
     CustomArgs = collections.namedtuple("CustomArgs", "flags type target")
     options = [
         CustomArgs(["--lr", "--learning_rate"], type=float, target="optimizer;args;lr"),
-        CustomArgs(["--bs", "--batch_size"], type=int, target="data_loader;args;batch_size"),
+        CustomArgs(
+            ["--bs", "--batch_size"], type=int, target="data_loader;args;batch_size"
+        ),
     ]
     config = ConfigParser.from_args(args, options)
 
@@ -55,22 +69,32 @@ def main():
     if data_loader.class_weights is None:
         criterion = config.init_obj("loss")
     else:
-        criterion = config.init_obj("loss", **{"weight": torch.tensor(data_loader.class_weights).to(device)})
+        criterion = config.init_obj(
+            "loss", **{"weight": torch.tensor(data_loader.class_weights).to(device)}
+        )
 
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = config.init_obj("optimizer", torch.optim, trainable_params)
-    lr_scheduler = config.init_obj("lr_scheduler", torch.optim.lr_scheduler, optimizer) if config["lr_scheduler"] else None
+    lr_scheduler = (
+        config.init_obj("lr_scheduler", torch.optim.lr_scheduler, optimizer)
+        if config["lr_scheduler"]
+        else None
+    )
 
     train_loader = data_loader(config["data_loader"]["partitions"]["train"])
     valid_loader = data_loader(config["data_loader"]["partitions"]["val"])
 
     metrics = {}
     for name, met in config["metrics"].items():
-        metric = partial(getattr(importlib.import_module(met["module"]), met["type"]), **met["args"])
+        metric = partial(
+            getattr(importlib.import_module(met["module"]), met["type"]), **met["args"]
+        )
 
         if "monai" in met["module"]:
-            metrics[name] = metrics_segmentation_constructor_monai(original_metric=metric)
+            metrics[name] = metrics_segmentation_constructor_monai(
+                original_metric=metric
+            )
         else:
             metrics[name] = BaseMetric(metric)
 
@@ -89,12 +113,16 @@ def main():
 
     results = {}
 
-    train_predictions, train_results = trainer.evaluate(train_loader, load_best_weights=False)
+    train_predictions, train_results = trainer.evaluate(
+        train_loader, load_best_weights=False
+    )
     results["Train Metrics"] = train_results
     results["Train Predictions"] = train_predictions.tolist()
 
     if valid_loader:
-        val_predictions, val_results = trainer.evaluate(valid_loader, load_best_weights=False)
+        val_predictions, val_results = trainer.evaluate(
+            valid_loader, load_best_weights=False
+        )
         results["Validation Metrics"] = val_results
         results["Validation Predictions"] = val_predictions.tolist()
 
@@ -102,7 +130,9 @@ def main():
 
     test_loader = data_loader(config["data_loader"]["partitions"]["test"])
     if test_loader:
-        test_predictions, test_results = trainer.evaluate(test_loader, load_best_weights=False)
+        test_predictions, test_results = trainer.evaluate(
+            test_loader, load_best_weights=False
+        )
         results["Test Metrics"] = test_results
         results["Test Predictions"] = test_predictions.tolist()
 

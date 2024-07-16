@@ -27,9 +27,15 @@ class DeleteBlackSlices(MapTransform):
         mean_per_slice_axis2 = mean(data, axis=(0, 1, 3), keepdims=False)
         mean_per_slice_axis3 = mean(data, axis=(0, 1, 2), keepdims=False)
 
-        mask_axis1 = (std_per_slice_axis1 > self.threshold * img_std) & (mean_per_slice_axis1 > self.threshold * img_mean)
-        mask_axis2 = (std_per_slice_axis2 > self.threshold * img_std) & (mean_per_slice_axis2 > self.threshold * img_mean)
-        mask_axis3 = (std_per_slice_axis3 > self.threshold * img_std) & (mean_per_slice_axis3 > self.threshold * img_mean)
+        mask_axis1 = (std_per_slice_axis1 > self.threshold * img_std) & (
+            mean_per_slice_axis1 > self.threshold * img_mean
+        )
+        mask_axis2 = (std_per_slice_axis2 > self.threshold * img_std) & (
+            mean_per_slice_axis2 > self.threshold * img_mean
+        )
+        mask_axis3 = (std_per_slice_axis3 > self.threshold * img_std) & (
+            mean_per_slice_axis3 > self.threshold * img_mean
+        )
         data = data[:, mask_axis1, :, :]
         data = data[:, :, mask_axis2, :]
         x[key] = data[:, :, :, mask_axis3]

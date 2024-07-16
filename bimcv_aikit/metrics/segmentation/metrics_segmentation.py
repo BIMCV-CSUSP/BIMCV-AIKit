@@ -55,7 +55,9 @@ class metrics_segmentation_constructor_monai:
         output_list = decollate_batch(preds_)
 
         # Apply post-processing transforms on predictions
-        output_convert = [self.post_pred(output_tensor) for output_tensor in output_list]
+        output_convert = [
+            self.post_pred(output_tensor) for output_tensor in output_list
+        ]
 
         # Compute metric
         self.metric(output_convert, labels_list)
@@ -133,7 +135,9 @@ class metrics_segmentation_multitask_logits:
         output_list = decollate_batch(preds_)
 
         # Apply post-processing transforms on predictions
-        labels_convert = [self.post_pred(labels_tensor) for labels_tensor in labels_list]
+        labels_convert = [
+            self.post_pred(labels_tensor) for labels_tensor in labels_list
+        ]
 
         # Compute metric
         self.metric(output_list, labels_convert)
