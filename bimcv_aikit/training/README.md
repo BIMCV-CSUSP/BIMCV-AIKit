@@ -2,122 +2,227 @@
 
 ## Training module usage
 
-The code in this repo is an MNIST example of the template.
-Try `bimcv_train -c config.json` to run code.
+This guide explains how to configure your deep learning model training using JSON configuration files. The configuration system allows you to set up various aspects of your model, data loading, training process, and evaluation metrics without modifying the core code.
 
-### Config file format
+### Configuration Structure
 
-Config files are in `.json` format:
+The configuration file is a JSON document with several main sections:
 
-```javascript
-{
-  "name": "Mnist_LeNet",        // training session name
-  "description": "",            // free text description of the experiment (optional)
-  "task": "classification",     // used to save logs (i.e. one folder per task)
-  "n_gpu": 1,                   // number of GPUs to use for training.
-  "arch": {
-    "module": "bimcv_aikit.models.classification", // name of module where the architecture is defined
-    "type": "MnistModel",       // name of model architecture to train
-    "args": {
+- General Settings
+- Model Architecture
+- Data Loading
+- Optimizer
+- Loss Function
+- Metrics
+- Learning Rate Scheduler
+- Trainer
+- Post-processing Transforms
+- Inference
 
-    }                
+Let's break down each section and explain the configurable fields:
+
+1. General Settings
+
+`name`: A string identifying your experiment (e.g., "Mnist_LeNet", "OxfordPet_UNet").
+`task`: The type of task, either "classification" or "segmentation". At the end this will be used to name one level of the output directory, so it ends up organized by task type.
+`n_gpu`: Number of GPUs to use (e.g., 0 for CPU, 1 for single GPU).
+`seed`: Random seed for reproducibility.
+
+2. Model Architecture
+The arch field specifies the model architecture:
+
+```json
+"arch": {
+  "module": "path.to.module",
+  "type": "ModelClassName",
+  "args": {}
+}
+```
+
+`module`: The Python module containing the model class.
+`type`: The name of the model class.
+`args`: Any arguments to pass to the model constructor.
+
+3. Data Loading
+The data_loader field configures how data is loaded and preprocessed:
+
+```json
+"data_loader": {
+  "module": "path.to.dataloader.module",
+  "type": "DataLoaderClassName",
+  "partitions": {
+    "train": "train",
+    "val": "dev",
+    "test": "test"
   },
-  "data_loader": {
-    "type": "MnistDataLoader",         // selecting data loader
-    "partitions": {
-      "folds": [                       // number of folds for cross-validation
-          "Fold 0",                    // see ADNI dataloader for an example
-          "Fold 1",
-          "Fold 2",
-          "Fold 3",
-          "Fold 4",
-          ...
-      ],
-      "train": "train",                // name of the train partition to retrieve it from the dataloader
-      "val": "dev",                    // name of the validation partition to retrieve it from the dataloader
-      "test": "test"                   // name of the test partition to retrieve it from the dataloader
-    },
-    "args":{
-      "data_dir": "data/",             // dataset path
-      "batch_size": 64,                // batch size
-      "shuffle": true,                 // shuffle training data before splitting
-      "validation_split": 0.1          // size of validation dataset. float(portion) or int(number of samples)
-      "num_workers": 2,                // number of cpu processes to be used for data loading
+  "args": {
+    "data_dir": "path/to/data/",
+    "batch_size": 32,
+    "shuffle": true,
+    "num_workers": 4,
+    "transforms": {
+      "train": { ... },
+      "val": { ... },
+      "test": { ... }
     }
-  },
-  "optimizer": {
-    "type": "Adam",
-    "args":{
-      "lr": 0.001,                     // learning rate
-      "weight_decay": 0,               // (optional) weight decay
-      "amsgrad": true
-    }
-  },
-  "loss": {
-    "module": "torch.nn",              // name of module where the loss function is defined
-    "type": "CrossEntropyLoss",
-    "args": {}
-  },              
-  "metrics": {
-    "accuracy": {
-      "module": "torchmetrics",        // name of module where the metric is defined
-      "type": "Accuracy",
-      "args": {
-        "task": "multiclass",
-        "average": "weighted",
-        "num_classes": 10
-      }
-    },
-    "specificity": {
-      "module": "torchmetrics",
-      "type": "Specificity",
-      "args": {
-        "task": "multiclass",
-        "average": "weighted",
-        "num_classes": 10
-      }
-    }
-  },                         
-  "lr_scheduler": {
-    "type": "StepLR",                  // learning rate scheduler
-    "args":{
-      "step_size": 50,          
-      "gamma": 0.1
-    }
-  },
-  "trainer": {
-    "type": "ClassificationTrainer",   // name of the trainer to use
-    "epochs": 100,                     // number of training epochs
-    "save_dir": "saved/",              // checkpoints are saved in save_dir/models/name
-    "save_freq": 1,                    // save checkpoints every save_freq epochs
-    "verbosity": 2,                    // 0: quiet, 1: per epoch, 2: full
-  
-    "monitor": "min val_loss"          // mode and metric for model performance monitoring. set 'off' to disable.
-    "early_stop": 10                   // number of epochs to wait before early stop. set 0 to disable.
-  
-    "tensorboard": true,               // enable tensorboard visualization
   }
 }
 ```
 
-Add addional configurations if you need.
+`module` and `type`: Specify the data loader class.
+`partitions`: Define dataset splits. In the example above, "dev" will be used to query the dataloader for the validation split. If you don't have a validation or test set, the dataloader must return `None` for the specified partition.
+`args`: Configure batch size, shuffling, number of workers, and data transforms.
 
-### Using config files
+Transforms can be specified for each partition (train, val, test) and for both input data and labels (in segmentation tasks). The keys on the transform dictionary in the config file must match those used in the dataloader.
 
-Modify the configurations in `.json` config files, then run:
+4. Optimizer
+Choose and configure the optimization algorithm:
 
-```python
-bimcv_train -c config.json
+```json
+"optimizer": {
+  "type": "Adam",
+  "args": {
+    "lr": 0.001,
+    "weight_decay": 0,
+    "amsgrad": true
+  }
+}
 ```
-or 
-```python
-python -m bimcv_aikit.training.train -c config.json
+
+`type`: The optimizer class name (e.g., "Adam", "SGD"). At this point, it must be from the `torch.optim` module.
+`args`: Optimizer-specific parameters.
+
+5. Loss Function
+Specify the loss function:
+
+```json
+"loss": {
+  "module": "torch.nn",
+  "type": "CrossEntropyLoss",
+  "args": {}
+}
 ```
 
-## TODO
+`module`: The module containing the loss function.
+`type`: The name of the loss function class.
+`args`: Any arguments for the loss function.
 
-- [ x ] Enable training from pip package installation
+6. Metrics
+Define evaluation metrics:
+
+```json
+"metrics": {
+  "accuracy": {
+    "module": "torchmetrics.functional.classification",
+    "type": "accuracy",
+    "args": {
+      "task": "multiclass",
+      "average": "weighted",
+      "num_classes": 10
+    }
+  }
+}
+```
+
+You can specify multiple metrics, each with its own configuration.
+
+7. Learning Rate Scheduler
+Optionally configure a learning rate scheduler:
+
+```json
+"lr_scheduler": {
+  "type": "StepLR",
+  "args": {
+    "step_size": 50,
+    "gamma": 0.1
+  }
+}
+```
+
+8. Trainer
+Configure the training process:
+
+```json
+"trainer": {
+  "type": "ClassificationTrainer",
+  "epochs": 5,
+  "save_dir": "saved/",
+  "save_period": null,
+  "verbosity": 2,
+  "monitor": "min loss",
+  "early_stop": 10,
+  "tensorboard": false
+}
+```
+
+This section controls training duration, model saving, logging, early stopping, and TensorBoard integration.
+
+9. Post-processing Transforms
+Define any post-processing steps applied to model outputs:
+
+```json
+"post_transforms": {
+  "pred": {
+    "module": "monai.transforms",
+    "type": "Compose",
+    "args": {
+      "transforms": [
+        {
+          "module": "monai.transforms",
+          "type": "Activations",
+          "args": {
+            "softmax": true
+          }
+        },
+        {
+          "module": "monai.transforms",
+          "type": "AsDiscrete",
+          "args": {
+            "argmax": true,
+            "dim": 1,
+            "keepdim": true
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+10. Inference
+Configure the inference process:
+
+```json
+"inferer": {
+  "module": "monai.inferers",
+  "type": "SimpleInferer",
+  "args": {}
+}
+```
+
+### Task-Specific Configurations
+
+#### Classification
+
+For classification tasks, pay special attention to:
+
+- The model architecture (often a CNN-based model)
+- Classification-specific metrics (e.g., accuracy, precision, recall)
+- The number of classes in your dataset
+
+#### Segmentation
+
+For segmentation tasks, consider:
+
+- Using a segmentation-specific architecture (e.g., U-Net)
+- Segmentation-specific loss functions (e.g., Dice Loss)
+- Metrics suitable for segmentation evaluation (e.g., Mean Dice score)
+- Proper input and label transformations, including resizing
+
+### Customization
+
+You can adjust the configuration as needed. In particular, pay attention to the dataloader section, which is usually customized for each use case. Remember to adjust paths, class names, and specific parameters to match your project structure and requirements. See the examples configurations for [classification](./config_classification.json) and [segmentation](./config_segmentation.json) for more details.
 
 ## Acknowledgements
 
-This project is inspired by [pytorch-template](https://github.com/victoresque/pytorch-template) the project by [Victor Huang](https://github.com/victoresque)
+This project is inspired by [pytorch-template](https://github.com/victoresque/pytorch-template) the project by [Victor Huang](https://github.com/victoresque).
