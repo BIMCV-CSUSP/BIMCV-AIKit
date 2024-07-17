@@ -1,6 +1,7 @@
 import argparse
 import importlib
 import json
+import types
 from functools import partial
 
 import numpy as np
@@ -91,16 +92,15 @@ def main():
 
     metrics = {}
     for name, met in config["metrics"].items():
-        metric = partial(
-            getattr(importlib.import_module(met["module"]), met["type"]), **met["args"]
-        )
-
-        if "monai" in met["module"]:
-            metrics[name] = metrics_segmentation_constructor_monai(
-                original_metric=metric
+        element = getattr(importlib.import_module(met["module"]), met["type"])
+        if isinstance(element, types.FunctionType):
+            metric = partial(
+                getattr(importlib.import_module(met["module"]), met["type"]),
+                **met["args"],
             )
         else:
-            metrics[name] = BaseMetric(metric)
+            metric = element(**met["args"])
+        metrics[name] = BaseMetric(metric)
 
     Trainer = getattr(module_trainer, config["trainer"]["type"])
     trainer = Trainer(
