@@ -24,13 +24,13 @@ class SegmentationTrainer(BaseTrainer):
         device,
         train_data_loader,
         inferer=None,
-        post_transforms=None,
-        fold="",
         valid_data_loader=None,
         lr_scheduler=None,
         len_epoch=None,
     ):
-        super().__init__(model, criterion, metric_ftns, optimizer, config, fold)
+        super().__init__(
+            model, criterion, metric_ftns, optimizer, config, device, lr_scheduler
+        )
         self.config = config
         self.device = device
         self.data_loader = train_data_loader
@@ -46,27 +46,19 @@ class SegmentationTrainer(BaseTrainer):
         self.lr_scheduler = lr_scheduler
         self.log_step = int(np.sqrt(train_data_loader.batch_size))
         self.inferer = inferer
-        self.post_transforms_pred = post_transforms["pred"]
-
-        if "label" in post_transforms.keys():
-            self.post_transforms_label = post_transforms["label"]
+        self.post_transforms_pred = self.post_transforms.get("pred")
+        if "label" in self.post_transforms.keys():
+            self.post_transforms_label = self.post_transforms.get("label")
         else:
-            self.post_transforms_label = post_transforms["pred"]
+            self.post_transforms_label = self.post_transforms.get("pred")
 
-    def evaluate(self, data_loader):
+    def _evaluate(self, data_loader):
         """
         Evaluates the PyTorch model using the given data loader.
 
         :param data_loader: torch.utils.data.DataLoader, the PyTorch DataLoader object to use for evaluation.
         :return: A tuple containing the predicted values and the computed metrics.
         """
-
-        path = str(self.checkpoint_dir / "model_best.pth")
-        checkpoint = torch.load(path)
-        self.model.load_state_dict(checkpoint["state_dict"])
-        self.logger.info(f"Checkpoint {path} loaded.")
-        self.model = self.model.to(self.device)
-        self.model.eval()
 
         outputs = []
         labels = []
@@ -80,21 +72,25 @@ class SegmentationTrainer(BaseTrainer):
                     ].to(self.device)
                     labels.append(target)
                     if self.inferer:
-                        outputs.append(self.inferer(data, self.model))
+                        out = self.inferer(data, self.model)
                     else:
-                        outputs.append(self.model(data))
+                        out = self.model(data)
+                    if not isinstance(out, torch.Tensor):  # for torchvision models
+                        out = out["out"]
+                    outputs.append(out)
 
         predictions, labels = torch.cat(outputs, 0), torch.cat(labels, 0)
+        if predictions.shape[1] > 1:
+            predictions = softmax(predictions, dim=1).argmax(dim=1, keepdim=True)
         metrics_dict = {}
-
         for name, metric_fct in self.metric_ftns.items():
             result = metric_fct(predictions, labels)
             try:
                 metrics_dict[name] = result.item()
-            except:
+            except Exception:
                 metrics_dict[name] = result.numpy()
             metric_fct.reset()
-        return None, metrics_dict
+        return np.array([]), metrics_dict
 
     def _aggregate_metrics_per_epoch(self, stage, epoch):
         """
@@ -128,7 +124,8 @@ class SegmentationTrainer(BaseTrainer):
         if not self.metric_ftns:
             return {}
         metrics_dict = {}
-
+        if predictions.shape[1] > 1:
+            predictions = softmax(predictions, dim=1).argmax(dim=1, keepdim=True)
         for name, metric_fct in self.metric_ftns.items():
             metric_fct(predictions, labels)
             metrics_dict[name] = f"{metric_fct.compute():.4f}"
@@ -155,10 +152,11 @@ class SegmentationTrainer(BaseTrainer):
 
                 self.optimizer.zero_grad()
                 output = self.model(data)
+                if not isinstance(output, torch.Tensor):  # for torchvision models
+                    output = output["out"]
                 loss = self.criterion(output, target)
                 loss.backward()
                 self.optimizer.step()
-
                 metrics_dict = self._compute_metrics(output, target)
                 epoch_loss += loss.item()
                 if batch_idx % self.log_step == 0:

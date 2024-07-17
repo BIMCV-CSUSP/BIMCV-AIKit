@@ -1,0 +1,211 @@
+{
+  "name": "OxfordPet_UNet",
+  "task": "segmentation",
+  "n_gpu": 1,
+  "seed": 42,
+  "arch": {
+    "module": "torchvision.models.segmentation",
+    "type": "fcn_resnet50",
+    "args": {}
+  },
+  "data_loader": {
+    "module": "bimcv_aikit.dataloaders.OxfordPetDataLoader",
+    "type": "OxfordIIITPetDataLoader",
+    "partitions": {
+      "train": "train",
+      "val": "val",
+      "test": "test"
+    },
+    "args": {
+      "data_dir": "data/",
+      "batch_size": 2,
+      "shuffle": true,
+      "num_workers": 1,
+      "transforms": {
+        "train_image": {
+          "module": "torchvision.transforms.v2",
+          "type": "Compose",
+          "args": {
+            "transforms": [
+              {
+                "module": "torchvision.transforms.v2",
+                "type": "ToTensor",
+                "args": {}
+              },
+              {
+                "module": "torchvision.transforms.v2",
+                "type": "Resize",
+                "args": {
+                  "size": [
+                    224,
+                    224
+                  ],
+                  "interpolation": 2
+                }
+              }
+            ]
+          }
+        },
+        "train_label": {
+          "module": "torchvision.transforms.v2",
+          "type": "Compose",
+          "args": {
+            "transforms": [
+              {
+                "module": "torchvision.transforms.v2",
+                "type": "Resize",
+                "args": {
+                  "size": [
+                    224,
+                    224
+                  ],
+                  "interpolation": 0
+                }
+              }
+            ]
+          }
+        },
+        "test_image": {
+          "module": "torchvision.transforms.v2",
+          "type": "Compose",
+          "args": {
+            "transforms": [
+              {
+                "module": "torchvision.transforms.v2",
+                "type": "ToTensor",
+                "args": {}
+              },
+              {
+                "module": "torchvision.transforms.v2",
+                "type": "Resize",
+                "args": {
+                  "size": [
+                    224,
+                    224
+                  ],
+                  "interpolation": 2
+                }
+              }
+            ]
+          }
+        },
+        "test_label": {
+          "module": "torchvision.transforms.v2",
+          "type": "Compose",
+          "args": {
+            "transforms": [
+              {
+                "module": "torchvision.transforms.v2",
+                "type": "Resize",
+                "args": {
+                  "size": [
+                    224,
+                    224
+                  ],
+                  "interpolation": 0
+                }
+              }
+            ]
+          }
+        },
+        "val": {}
+      }
+    }
+  },
+  "optimizer": {
+    "type": "Adam",
+    "args": {
+      "lr": 0.001,
+      "weight_decay": 0,
+      "amsgrad": true
+    }
+  },
+  "loss": {
+    "module": "monai.losses",
+    "type": "DiceLoss",
+    "args": {
+      "softmax": true,
+      "to_onehot_y": true
+    }
+  },
+  "metrics": {
+    "dice": {
+      "module": "monai.metrics.meandice",
+      "type": "DiceHelper",
+      "args": {
+        "reduction": "mean",
+        "softmax": false,
+        "get_not_nans": false
+      }
+    }
+  },
+  "lr_scheduler": {},
+  "trainer": {
+    "type": "SegmentationTrainer",
+    "epochs": 5,
+    "save_dir": "saved/",
+    "save_period": null,
+    "verbosity": 2,
+    "monitor": "min loss",
+    "early_stop": 10,
+    "tensorboard": false
+  },
+  "post_transforms": {
+    "label": {
+      "module": "torchvision.transforms",
+      "type": "Compose",
+      "args": {
+        "transforms": [
+          {
+            "module": "torchvision.transforms",
+            "type": "ToTensor",
+            "args": {}
+          },
+          {
+            "module": "torchvision.transforms",
+            "type": "Normalize",
+            "args": {
+              "mean": [
+                0.1307
+              ],
+              "std": [
+                0.3081
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "pred": {
+      "module": "torchvision.transforms",
+      "type": "Compose",
+      "args": {
+        "transforms": [
+          {
+            "module": "torchvision.transforms",
+            "type": "ToTensor",
+            "args": {}
+          },
+          {
+            "module": "torchvision.transforms",
+            "type": "Normalize",
+            "args": {
+              "mean": [
+                0.1307
+              ],
+              "std": [
+                0.3081
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "val": {}
+  },
+  "inferer": {
+    "module": "monai.inferers",
+    "type": "SimpleInferer",
+    "args": {}
+  }
+}

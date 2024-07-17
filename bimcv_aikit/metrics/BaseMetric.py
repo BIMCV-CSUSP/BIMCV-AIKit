@@ -40,7 +40,7 @@ class BaseMetric(Cumulative, IterationMetric):
             The computed metric values at the iteration level. The output shape should be
             a `batch-first` tensor (BC[HWD]) or a list of `batch-first` tensors.
         """
-        ret = super().__call__(y_pred=y_pred, y=y, **kwargs)
+        ret = super().__call__(y_pred=y_pred, y=y, **kwargs).squeeze()
         if isinstance(
             ret, (tuple, list)
         ):  # First two cases account for image metrics (more than one dimension)

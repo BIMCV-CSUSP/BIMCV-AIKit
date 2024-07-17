@@ -67,15 +67,25 @@ class BaseDataLoader(Callable):
 
 
 class BaseClassificationDataLoader(BaseDataLoader):
-    class_weights: Union[list, None] = None
+    _class_weights: Union[list[float], None] = None
 
     @property
-    def class_weights(self) -> list:
+    def class_weights(self) -> Union[list[float], None]:
         """
         Returns the class weights for the dataset.
         """
         return self._class_weights
 
     @class_weights.setter
-    def class_weights(self, class_weights: list):
+    def class_weights(self, class_weights: list[float]):
         self._class_weights = class_weights
+
+
+class BaseSegmentationDataLoader(BaseDataLoader):
+
+    @property
+    def class_weights(self) -> Union[list[float], None]:
+        """
+        Returns the class weights for the dataset.
+        """
+        return None
