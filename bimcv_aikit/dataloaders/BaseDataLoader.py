@@ -53,11 +53,13 @@ class BaseDataLoader(Callable):
                         transform["module"], transform["type"], **transform["args"]
                     )
                     for transform in transform_config["args"]["transforms"]
+                    if isinstance(transform, dict)
                 ]
+                if len(transform_list) > 0:
+                    transform_config["args"]["transforms"] = transform_list
             except Exception as e:
                 print(f"Error defining transforms for {partition} partition")
                 raise e
-            transform_config["args"]["transforms"] = transform_list
             transforms[partition] = init_obj(
                 transform_config["module"],
                 transform_config["type"],

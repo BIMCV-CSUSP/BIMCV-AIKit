@@ -14,7 +14,15 @@
     "partitions": {
       "train": "train",
       "val": "val",
-      "test": "test"
+      "test": "test",
+      "crossval_arg": "fold",
+      "folds": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4"
+      ]
     },
     "args": {
       "data_dir": "data/",
@@ -141,10 +149,10 @@
   "lr_scheduler": {},
   "trainer": {
     "type": "SegmentationTrainer",
-    "epochs": 5,
+    "epochs": 2,
     "save_dir": "saved/",
     "save_period": null,
-    "verbosity": 2,
+    "verbosity": 1,
     "monitor": "min loss",
     "early_stop": 10,
     "tensorboard": false

@@ -22,13 +22,21 @@ class SegmentationTrainer(BaseTrainer):
         config,
         device,
         train_data_loader,
+        fold="",
         inferer=None,
         valid_data_loader=None,
         lr_scheduler=None,
         len_epoch=None,
     ):
         super().__init__(
-            model, criterion, metric_ftns, optimizer, config, device, lr_scheduler
+            model,
+            criterion,
+            metric_ftns,
+            optimizer,
+            config,
+            device,
+            lr_scheduler,
+            fold=fold,
         )
         self.config = config
         self.device = device

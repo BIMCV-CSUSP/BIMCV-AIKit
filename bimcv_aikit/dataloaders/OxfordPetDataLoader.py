@@ -40,6 +40,7 @@ class OxfordIIITPetDataLoader(BaseSegmentationDataLoader):
     def __init__(
         self,
         data_dir: str,
+        fold: str = "-1",
         transforms: dict = {},
         batch_size: int = 4,
         shuffle=False,
@@ -48,8 +49,12 @@ class OxfordIIITPetDataLoader(BaseSegmentationDataLoader):
         super().__init__(batch_size, shuffle, num_workers)
 
         self.data_dir = data_dir
-        transforms_dict = self.init_transforms(transforms)
-        self.transform = transforms_dict
+        self.transform = self.init_transforms(transforms)
+        fold_int = int(fold)
+        if fold_int < 0:
+            self.indexes = range(50)
+        else:
+            self.indexes = range(fold_int * 10, (fold_int + 1) * 10)
         self.train_dataset = Subset(
             OxfordPet(
                 self.data_dir,
@@ -59,7 +64,7 @@ class OxfordIIITPetDataLoader(BaseSegmentationDataLoader):
                 target_transform=self.transform["train_label"],
                 download=True,
             ),
-            range(10),
+            self.indexes,
         )
 
     def __call__(self, partition: str) -> DataLoader:
@@ -75,7 +80,7 @@ class OxfordIIITPetDataLoader(BaseSegmentationDataLoader):
                     target_transform=self.transform["test_label"],
                     download=True,
                 ),
-                range(10),
+                self.indexes,
             )
             return DataLoader(test_dataset, **self.dataloader_kwargs)
         return None
