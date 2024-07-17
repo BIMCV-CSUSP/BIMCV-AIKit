@@ -2,7 +2,6 @@ from time import sleep
 
 import numpy as np
 import torch
-from torch.nn.functional import softmax
 from tqdm import tqdm
 
 from ..utils import inf_loop
@@ -46,11 +45,6 @@ class SegmentationTrainer(BaseTrainer):
         self.lr_scheduler = lr_scheduler
         self.log_step = int(np.sqrt(train_data_loader.batch_size))
         self.inferer = inferer
-        self.post_transforms_pred = self.post_transforms.get("pred")
-        if "label" in self.post_transforms.keys():
-            self.post_transforms_label = self.post_transforms.get("label")
-        else:
-            self.post_transforms_label = self.post_transforms.get("pred")
 
     def _evaluate(self, data_loader):
         """
@@ -80,8 +74,12 @@ class SegmentationTrainer(BaseTrainer):
                     outputs.append(out)
 
         predictions, labels = torch.cat(outputs, 0), torch.cat(labels, 0)
-        if predictions.shape[1] > 1:
-            predictions = softmax(predictions, dim=1).argmax(dim=1, keepdim=True)
+
+        if self.post_transforms.get("pred"):
+            predictions = self.post_transforms["pred"](predictions)
+        if self.post_transforms.get("label"):
+            labels = self.post_transforms["label"](labels)
+
         metrics_dict = {}
         for name, metric_fct in self.metric_ftns.items():
             result = metric_fct(predictions, labels)
@@ -92,7 +90,7 @@ class SegmentationTrainer(BaseTrainer):
             metric_fct.reset()
         return np.array([]), metrics_dict
 
-    def _aggregate_metrics_per_epoch(self, stage, epoch):
+    def _aggregate_metrics_per_epoch(self, stage: str, epoch: int) -> dict:
         """
         Aggregates metrics for the given stage and epoch, and logs to tensorboard.
 
@@ -102,7 +100,7 @@ class SegmentationTrainer(BaseTrainer):
         """
 
         if not self.metric_ftns:
-            return {}, []
+            return {}
         metrics_dict = {}
         values = []
         for name, metric_fct in self.metric_ftns.items():
@@ -124,8 +122,12 @@ class SegmentationTrainer(BaseTrainer):
         if not self.metric_ftns:
             return {}
         metrics_dict = {}
-        if predictions.shape[1] > 1:
-            predictions = softmax(predictions, dim=1).argmax(dim=1, keepdim=True)
+
+        if self.post_transforms.get("pred"):
+            predictions = self.post_transforms["pred"](predictions)
+        if self.post_transforms.get("label"):
+            labels = self.post_transforms["label"](labels)
+
         for name, metric_fct in self.metric_ftns.items():
             metric_fct(predictions, labels)
             metrics_dict[name] = f"{metric_fct.compute():.4f}"

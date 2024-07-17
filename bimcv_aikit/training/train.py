@@ -9,9 +9,6 @@ import torch
 from prettytable import PrettyTable
 
 from ..metrics.BaseMetric import BaseMetric
-from ..metrics.segmentation.metrics_segmentation import (
-    metrics_segmentation_constructor_monai,
-)
 from . import trainer as module_trainer
 from .parse_config import ConfigParser, CustomArgs
 from .utils import prepare_device
