@@ -2,11 +2,9 @@ from time import sleep
 
 import numpy as np
 import torch
-from monai import visualize
 from torch.nn.functional import softmax
 from tqdm import tqdm
 
-from ..utils import inf_loop
 from .BaseTrainer import BaseTrainer
 
 
@@ -26,27 +24,24 @@ class ClassificationTrainer(BaseTrainer):
         train_data_loader,
         fold="",
         valid_data_loader=None,
-        post_transforms=None,
-        inferer=None,
         lr_scheduler=None,
-        len_epoch=None,
     ):
         super().__init__(
-            model, criterion, metric_ftns, optimizer, config, device, lr_scheduler, fold
+            model,
+            train_data_loader,
+            criterion,
+            metric_ftns,
+            optimizer,
+            config,
+            device,
+            lr_scheduler,
+            valid_data_loader,
+            fold,
         )
-        self.data_loader = train_data_loader
-        if len_epoch is None:
-            # epoch-based training
-            self.len_epoch = len(self.data_loader)
-        else:
-            # iteration-based training
-            self.data_loader = inf_loop(train_data_loader)
-            self.len_epoch = len_epoch
-        self.valid_data_loader = valid_data_loader
-        self.do_validation = self.valid_data_loader is not None
-        self.log_step = int(np.sqrt(train_data_loader.batch_size))
 
-    def _evaluate(self, data_loader):
+    def _evaluate(
+        self, data_loader: torch.utils.data.DataLoader
+    ) -> tuple[np.ndarray, dict]:
         """
         Evaluates the PyTorch model using the given data loader.
 
@@ -80,12 +75,12 @@ class ClassificationTrainer(BaseTrainer):
             result = metric_fct(predictions.to("cpu"), labels.to("cpu"))
             try:
                 metrics_dict[name] = result.item()
-            except:
+            except Exception:
                 metrics_dict[name] = result.numpy()
             metric_fct.reset()
         return predict_proba, metrics_dict
 
-    def _aggregate_metrics_per_epoch(self, stage, epoch):
+    def _aggregate_metrics_per_epoch(self, stage: str, epoch: int) -> dict:
         """
         Aggregates metrics for the given stage and epoch, and logs to tensorboard.
 
@@ -95,7 +90,7 @@ class ClassificationTrainer(BaseTrainer):
         """
 
         if not self.metric_ftns:
-            return {}, []
+            return {}
         metrics_dict = {}
         values = []
         for name, metric_fct in self.metric_ftns.items():
@@ -105,7 +100,7 @@ class ClassificationTrainer(BaseTrainer):
             values.append(f"{metrics_dict[name]:.4f}")
         return metrics_dict
 
-    def _compute_metrics(self, predictions, labels):
+    def _compute_metrics(self, predictions: torch.Tensor, labels: torch.Tensor) -> dict:
         """
         Computes metrics for the given predictions and labels.
 
@@ -130,7 +125,7 @@ class ClassificationTrainer(BaseTrainer):
             metrics_dict[name] = f"{metric_fct.compute():.4f}"
         return metrics_dict
 
-    def _train_epoch(self, epoch):
+    def _train_epoch(self, epoch: int):
         """
         Training logic for an epoch
 
@@ -140,7 +135,7 @@ class ClassificationTrainer(BaseTrainer):
 
         self.model = self.model.to(self.device)
         self.model.train()
-
+        batch_idx = 0
         with tqdm(self.data_loader, unit="batch") as tepoch:
             epoch_loss = 0.0
             for batch_idx, batch_data in enumerate(tepoch):
@@ -190,7 +185,7 @@ class ClassificationTrainer(BaseTrainer):
             self.lr_scheduler.step()
         return metrics_dict
 
-    def _valid_epoch(self, epoch):
+    def _valid_epoch(self, epoch: int):
         """
         Validate after training an epoch
 
@@ -198,6 +193,7 @@ class ClassificationTrainer(BaseTrainer):
         :return: A log that contains information about validation
         """
         self.model.eval()
+        batch_idx = 0
         with torch.no_grad():
             with tqdm(self.valid_data_loader, unit="batch") as tepoch:
                 epoch_loss = 0.0

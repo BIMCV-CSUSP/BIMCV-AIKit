@@ -4,7 +4,6 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from ..utils import inf_loop
 from .BaseTrainer import BaseTrainer
 
 
@@ -23,38 +22,25 @@ class SegmentationTrainer(BaseTrainer):
         device,
         train_data_loader,
         fold="",
-        inferer=None,
         valid_data_loader=None,
         lr_scheduler=None,
-        len_epoch=None,
     ):
         super().__init__(
             model,
+            train_data_loader,
             criterion,
             metric_ftns,
             optimizer,
             config,
             device,
             lr_scheduler,
-            fold=fold,
+            valid_data_loader,
+            fold,
         )
-        self.config = config
-        self.device = device
-        self.data_loader = train_data_loader
-        if len_epoch is None:
-            # epoch-based training
-            self.len_epoch = len(self.data_loader)
-        else:
-            # iteration-based training
-            self.data_loader = inf_loop(train_data_loader)
-            self.len_epoch = len_epoch
-        self.valid_data_loader = valid_data_loader
-        self.do_validation = self.valid_data_loader is not None
-        self.lr_scheduler = lr_scheduler
-        self.log_step = int(np.sqrt(train_data_loader.batch_size))
-        self.inferer = inferer
 
-    def _evaluate(self, data_loader):
+    def _evaluate(
+        self, data_loader: torch.utils.data.DataLoader
+    ) -> tuple[np.ndarray, dict]:
         """
         Evaluates the PyTorch model using the given data loader.
 
@@ -118,7 +104,7 @@ class SegmentationTrainer(BaseTrainer):
             values.append(f"{metrics_dict[name]:.4f}")
         return metrics_dict
 
-    def _compute_metrics(self, predictions, labels):
+    def _compute_metrics(self, predictions: torch.Tensor, labels: torch.Tensor) -> dict:
         """
         Computes metrics for the given predictions and labels.
 
@@ -141,7 +127,7 @@ class SegmentationTrainer(BaseTrainer):
             metrics_dict[name] = f"{metric_fct.compute():.4f}"
         return metrics_dict
 
-    def _train_epoch(self, epoch):
+    def _train_epoch(self, epoch: int) -> dict:
         """
         Training logic for an epoch
 
@@ -151,7 +137,7 @@ class SegmentationTrainer(BaseTrainer):
 
         self.model = self.model.to(self.device)
         self.model.train()
-
+        batch_idx = 0
         with tqdm(self.data_loader, unit="batch") as tepoch:
             epoch_loss = 0.0
             for batch_idx, batch_data in enumerate(tepoch):
@@ -202,7 +188,7 @@ class SegmentationTrainer(BaseTrainer):
             self.lr_scheduler.step()
         return metrics_dict
 
-    def _valid_epoch(self, epoch):
+    def _valid_epoch(self, epoch: int) -> dict:
         """
         Validate after training an epoch
 
@@ -210,6 +196,7 @@ class SegmentationTrainer(BaseTrainer):
         :return: A log that contains information about validation
         """
         self.model.eval()
+        batch_idx = 0
         with torch.no_grad():
             with tqdm(self.valid_data_loader, unit="batch") as tepoch:
                 epoch_loss = 0.0

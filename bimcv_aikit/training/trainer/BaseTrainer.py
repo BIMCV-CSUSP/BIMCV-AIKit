@@ -2,15 +2,16 @@ import pathlib
 import signal
 from abc import abstractmethod
 from collections.abc import Callable
-from typing import Any, Union
+from typing import Union
 
 import torch
-from numpy import inf, ndarray
+from numpy import inf, ndarray, sqrt
 from prettytable import PrettyTable
 
 from ...utils.config import init_obj
 from ..logger import TensorboardWriter
 from ..parse_config import ConfigParser
+from ..utils import inf_loop
 
 
 class BaseTrainer:
@@ -21,12 +22,14 @@ class BaseTrainer:
     def __init__(
         self,
         model: torch.nn.Module,
+        train_data_loader: torch.utils.data.DataLoader,
         criterion: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
         metric_ftns: dict,
         optimizer: torch.optim.Optimizer,
         config: ConfigParser,
         device: torch.device,
-        lr_scheduler: Union[torch.optim.lr_scheduler._LRScheduler, None],
+        lr_scheduler: Union[torch.optim.lr_scheduler._LRScheduler, None] = None,
+        valid_data_loader: Union[torch.utils.data.DataLoader, None] = None,
         fold: str = "",
     ):
         self.config = config
@@ -39,6 +42,17 @@ class BaseTrainer:
         self.lr_scheduler = lr_scheduler
 
         cfg_trainer = config["trainer"]
+        if not (len_epoch := cfg_trainer.get("len_epoch")):
+            # epoch-based training
+            self.data_loader = train_data_loader
+            self.len_epoch = len(self.data_loader)
+        else:
+            # iteration-based training
+            self.data_loader = inf_loop(train_data_loader)
+            self.len_epoch = len_epoch
+        self.valid_data_loader = valid_data_loader
+        self.do_validation = self.valid_data_loader is not None
+        self.log_step = int(sqrt(train_data_loader.batch_size))
         self.epochs = cfg_trainer["epochs"]
         self.save_period = (
             cfg_trainer["save_period"]
