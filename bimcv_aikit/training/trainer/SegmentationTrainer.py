@@ -1,3 +1,4 @@
+import logging
 from time import sleep
 
 import numpy as np
@@ -52,7 +53,11 @@ class SegmentationTrainer(BaseTrainer):
         labels = []
 
         with torch.no_grad():
-            with tqdm(data_loader, unit="batch") as tepoch:
+            with tqdm(
+                data_loader,
+                unit="batch",
+                disable=(self.logger.level >= logging.WARNING),
+            ) as tepoch:
                 for batch_data in tepoch:
                     tepoch.set_description("Progress")
                     data, target = batch_data["image"].to(self.device), batch_data[
@@ -138,7 +143,11 @@ class SegmentationTrainer(BaseTrainer):
         self.model = self.model.to(self.device)
         self.model.train()
         batch_idx = 0
-        with tqdm(self.data_loader, unit="batch") as tepoch:
+        with tqdm(
+            self.data_loader,
+            unit="batch",
+            disable=(self.logger.level >= logging.WARNING),
+        ) as tepoch:
             epoch_loss = 0.0
             for batch_idx, batch_data in enumerate(tepoch):
                 tepoch.set_description(f"Train Epoch {epoch}")
@@ -198,7 +207,11 @@ class SegmentationTrainer(BaseTrainer):
         self.model.eval()
         batch_idx = 0
         with torch.no_grad():
-            with tqdm(self.valid_data_loader, unit="batch") as tepoch:
+            with tqdm(
+                self.valid_data_loader,
+                unit="batch",
+                disable=(self.logger.level >= logging.WARNING),
+            ) as tepoch:
                 epoch_loss = 0.0
                 for batch_idx, batch_data in enumerate(tepoch):
                     tepoch.set_description(f"Validation Epoch {epoch}")

@@ -50,8 +50,10 @@ class ConfigParser:
         write_json(self.config, self.save_dir / "config.json")
 
         # configure logging module
-        setup_logging(self.log_dir)
-        self.log_levels = {0: logging.WARNING, 1: logging.INFO, 2: logging.DEBUG}
+        setup_logging(
+            self.log_dir,
+            level=self.config["trainer"].get("verbosity", "INFO"),
+        )
 
     @classmethod
     def from_args(cls, args: ArgumentParser, options: list[CustomArgs]):
@@ -130,13 +132,9 @@ class ConfigParser:
         """Access items like ordinary dict."""
         return self.config.get(name)
 
-    def get_logger(self, name, verbosity=2):
-        msg_verbosity = "verbosity option {} is invalid. Valid options are {}.".format(
-            verbosity, self.log_levels.keys()
-        )
-        assert verbosity in self.log_levels, msg_verbosity
+    def get_logger(self, name: str) -> logging.Logger:
         logger = logging.getLogger(name)
-        logger.setLevel(self.log_levels[verbosity])
+        logger.setLevel(self.config["trainer"].get("verbosity", "INFO"))
         return logger
 
     # setting read-only attributes

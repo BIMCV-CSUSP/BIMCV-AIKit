@@ -152,7 +152,7 @@
     "epochs": 2,
     "save_dir": "saved/",
     "save_period": null,
-    "verbosity": 1,
+    "verbosity": "DEBUG",
     "monitor": "min loss",
     "early_stop": 10,
     "tensorboard": false

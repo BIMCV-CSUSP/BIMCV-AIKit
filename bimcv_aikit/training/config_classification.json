@@ -128,7 +128,7 @@
     "epochs": 5,
     "save_dir": "saved/",
     "save_period": null,
-    "verbosity": 2,
+    "verbosity": "INFO",
     "monitor": "min loss",
     "early_stop": 10,
     "tensorboard": false

@@ -33,7 +33,7 @@ class BaseTrainer:
         fold: str = "",
     ):
         self.config = config
-        self.logger = config.get_logger("trainer", config["trainer"]["verbosity"])
+        self.logger = config.get_logger("trainer")
         self.model = model
         self.criterion = criterion
         self.metric_ftns = metric_ftns
@@ -228,7 +228,6 @@ class BaseTrainer:
         state = {
             "arch": arch,
             "epoch": epoch,
-            # "state_dict": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "monitor_best": self.mnt_best,
             "config": self.config,
@@ -259,15 +258,15 @@ class BaseTrainer:
 
         # load architecture params from checkpoint.
         if checkpoint["config"]["arch"] != self.config["arch"]:
-            raise ValueError(
+            self.logger.error(
                 "Architecture configuration given in config file is different from that of checkpoint."
             )
+            raise ValueError
         weights_path = resume_path.parent.joinpath(
             resume_path.stem.replace("checkpoint", "model-weights")
         )
         if not str(weights_path).endswith(".pth"):
             weights_path = weights_path.with_suffix(".pth")
-        print(weights_path)
         self.model.load_state_dict(torch.load(str(weights_path))["state_dict"])
 
         # load optimizer state from checkpoint only when optimizer type is not changed.
@@ -284,8 +283,7 @@ class BaseTrainer:
         self.logger.info(f"Loaded checkpoint from epoch {self.start_epoch}.")
         self.checkpoint_dir = resume_path.parent
 
-    @staticmethod
-    def _init_transforms(transforms_config: dict) -> dict:
+    def _init_transforms(self, transforms_config: dict) -> dict:
         """
         Initializes the transforms from a configuration dictionary.
         """
@@ -307,7 +305,9 @@ class BaseTrainer:
                 if len(transform_list) > 0:
                     transform_config["args"]["transforms"] = transform_list
             except Exception as e:
-                print(f"Error defining transforms for {partition} partition")
+                self.logger.error(
+                    f"Error defining transforms for {partition} partition"
+                )
                 raise e
             transforms[partition] = init_obj(
                 transform_config["module"],
