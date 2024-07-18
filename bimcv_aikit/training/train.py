@@ -18,36 +18,7 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 
-def main():
-    args = argparse.ArgumentParser(description="PyTorch Template")
-    args.add_argument(
-        "-c", "--config", required=True, type=str, help="config file path"
-    )
-    args.add_argument(
-        "-r",
-        "--resume",
-        default=None,
-        type=str,
-        help="path to latest checkpoint (default: None)",
-    )
-    args.add_argument(
-        "-d",
-        "--device",
-        default=None,
-        type=str,
-        help="indices of GPUs to enable (default: all)",
-    )
-
-    # custom cli options to modify configuration from default values given in json file.
-    # CustomArgs = collections.namedtuple("CustomArgs", "flags type target")
-    options = [
-        CustomArgs(["--lr", "--learning_rate"], type=float, target="optimizer;args;lr"),
-        CustomArgs(
-            ["--bs", "--batch_size"], type=int, target="data_loader;args;batch_size"
-        ),
-    ]
-    config = ConfigParser.from_args(args, options)
-
+def main(config: ConfigParser):
     SEED = config["seed"] if config["seed"] else torch.randint(1, 10000)
     torch.manual_seed(SEED)
     np.random.seed(SEED)
@@ -154,4 +125,31 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    args = argparse.ArgumentParser(description="PyTorch model training script")
+    args.add_argument(
+        "-c", "--config", required=True, type=str, help="config file path"
+    )
+    args.add_argument(
+        "-r",
+        "--resume",
+        default=None,
+        type=str,
+        help="path to latest checkpoint (default: None)",
+    )
+    args.add_argument(
+        "-d",
+        "--device",
+        default=None,
+        type=str,
+        help="indices of GPUs to enable (default: all)",
+    )
+    options = [
+        CustomArgs(["--lr", "--learning_rate"], type=float, target="optimizer;args;lr"),
+        CustomArgs(
+            ["--bs", "--batch_size"], type=int, target="data_loader;args;batch_size"
+        ),
+    ]
+
+    config = ConfigParser.from_args(args, options)
+
+    main(config)
