@@ -46,10 +46,9 @@ class OxfordIIITPetDataLoader(BaseSegmentationDataLoader):
         shuffle=False,
         num_workers=1,
     ):
-        super().__init__(batch_size, shuffle, num_workers)
+        super().__init__(transforms, batch_size, shuffle, num_workers)
 
         self.data_dir = data_dir
-        self.transform = self.init_transforms(transforms)
         fold_int = int(fold)
         if fold_int < 0:
             self.indexes = range(50)
@@ -60,27 +59,31 @@ class OxfordIIITPetDataLoader(BaseSegmentationDataLoader):
                 self.data_dir,
                 split="trainval",
                 target_types="segmentation",
-                transform=self.transform["train_image"],
-                target_transform=self.transform["train_label"],
+                transform=self.transforms.get("train_image"),
+                target_transform=self.transforms.get("train_label"),
                 download=True,
             ),
             self.indexes,
         )
+        self.logger.debug(f"Train dataset size: {len(self.train_dataset)}")
 
     def __call__(self, partition: str) -> DataLoader:
         if partition == "train":
             return DataLoader(self.train_dataset, **self.dataloader_kwargs)
-        if partition == "test":
+        elif partition == "test":
             test_dataset = Subset(
                 OxfordPet(
                     self.data_dir,
                     split="test",
                     target_types="segmentation",
-                    transform=self.transform["test_image"],
-                    target_transform=self.transform["test_label"],
+                    transform=self.transforms.get("test_image"),
+                    target_transform=self.transforms.get("test_label"),
                     download=True,
                 ),
                 self.indexes,
             )
+            self.logger.debug(f"Test dataset size: {len(test_dataset)}")
             return DataLoader(test_dataset, **self.dataloader_kwargs)
+        else:
+            self.logger.warning(f'No dataset found for partition "{partition}"')
         return None

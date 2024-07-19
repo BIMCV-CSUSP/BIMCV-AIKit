@@ -12,13 +12,6 @@
     "module": "bimcv_aikit.dataloaders",
     "type": "MnistDataLoader",
     "partitions": {
-      "folds": [
-        "Fold 0",
-        "Fold 1",
-        "Fold 2",
-        "Fold 3",
-        "Fold 4"
-      ],
       "train": "train",
       "val": "val",
       "test": "test"
@@ -78,8 +71,7 @@
               }
             ]
           }
-        },
-        "val": {}
+        }
       }
     }
   },
