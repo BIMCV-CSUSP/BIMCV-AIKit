@@ -128,63 +128,36 @@
     "epochs": 5,
     "save_dir": "saved/",
     "save_period": null,
-    "verbosity": "INFO",
+    "verbosity": "DEBUG",
     "monitor": "min loss",
     "early_stop": 10,
     "tensorboard": false
   },
   "post_transforms": {
-    "train": {
-      "module": "torchvision.transforms",
+    "pred": {
+      "module": "monai.transforms",
       "type": "Compose",
       "args": {
         "transforms": [
           {
-            "module": "torchvision.transforms",
-            "type": "ToTensor",
-            "args": {}
+            "module": "monai.transforms",
+            "type": "Activations",
+            "args": {
+              "softmax": true
+            }
           },
           {
-            "module": "torchvision.transforms",
-            "type": "Normalize",
+            "module": "monai.transforms",
+            "type": "AsDiscrete",
             "args": {
-              "mean": [
-                0.1307
-              ],
-              "std": [
-                0.3081
-              ]
+              "argmax": true,
+              "dim": 1,
+              "keepdim": false
             }
           }
         ]
       }
-    },
-    "test": {
-      "module": "torchvision.transforms",
-      "type": "Compose",
-      "args": {
-        "transforms": [
-          {
-            "module": "torchvision.transforms",
-            "type": "ToTensor",
-            "args": {}
-          },
-          {
-            "module": "torchvision.transforms",
-            "type": "Normalize",
-            "args": {
-              "mean": [
-                0.1307
-              ],
-              "std": [
-                0.3081
-              ]
-            }
-          }
-        ]
-      }
-    },
-    "val": {}
+    }
   },
   "inferer": {
     "module": "monai.inferers",

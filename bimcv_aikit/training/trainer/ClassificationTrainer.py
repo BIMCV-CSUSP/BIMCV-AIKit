@@ -3,7 +3,6 @@ from time import sleep
 
 import numpy as np
 import torch
-from torch.nn.functional import softmax
 from tqdm import tqdm
 
 from .BaseTrainer import BaseTrainer
@@ -60,7 +59,7 @@ class ClassificationTrainer(BaseTrainer):
                 disable=(self.logger.level >= logging.WARNING),
             ) as tepoch:
                 for batch_data in tepoch:
-                    tepoch.set_description("Progress")
+                    tepoch.set_description("Evaluation progress")
                     data, target = batch_data["image"].to(self.device), batch_data[
                         "label"
                     ].to(self.device)
@@ -68,14 +67,12 @@ class ClassificationTrainer(BaseTrainer):
                     outputs.append(self.model(data))
 
         predictions, labels = torch.cat(outputs, 0), torch.cat(labels, 0)
-        metrics_dict = {}
-        if any(predictions.sum(dim=1) != 1.0):  # if predictions are not probabilities
-            predictions = softmax(predictions, dim=1)
+        if self.post_transforms.get("pred"):
+            predictions = self.post_transforms["pred"](predictions)
+        if self.post_transforms.get("label"):
+            labels = self.post_transforms["label"](labels)
         predict_proba = predictions.cpu().numpy()
-        if len(predictions.shape) == 2:  # if predictions are one-hot
-            predictions = predictions.argmax(dim=1)
-        if len(labels.shape) == 2:  # if predictions are one-hot
-            labels = labels.argmax(dim=1)
+        metrics_dict = {}
         for name, metric_fct in self.metric_ftns.items():
             result = metric_fct(predictions.to("cpu"), labels.to("cpu"))
             try:
@@ -116,15 +113,11 @@ class ClassificationTrainer(BaseTrainer):
 
         if not self.metric_ftns:
             return {}
+        if self.post_transforms.get("pred"):
+            predictions = self.post_transforms["pred"](predictions)
+        if self.post_transforms.get("label"):
+            labels = self.post_transforms["label"](labels)
         metrics_dict = {}
-        if any(predictions.sum(dim=1) != 1.0):  # if predictions are not probabilities
-            predictions = softmax(predictions, dim=1)
-        if len(predictions.shape) == 2:  # if predictions are one-hot
-            predictions = predictions.argmax(dim=1, keepdim=True)
-        if len(labels.shape) == 1:
-            labels = labels.unsqueeze(1)
-        elif len(labels.shape) == 2:  # if predictions are one-hot
-            labels = labels.argmax(dim=1, keepdim=True)
         for name, metric_fct in self.metric_ftns.items():
             metric_fct(predictions.to("cpu"), labels.to("cpu"))
             metrics_dict[name] = f"{metric_fct.compute():.4f}"
@@ -152,13 +145,15 @@ class ClassificationTrainer(BaseTrainer):
                 data, target = batch_data["image"].to(self.device), batch_data[
                     "label"
                 ].to(self.device)
-
                 self.optimizer.zero_grad()
                 output = self.model(data)
+                if epoch == 1 and batch_idx == 0:
+                    self.logger.debug(f"Model input shape: {data.shape}")
+                    self.logger.debug(f"Model ground truth shape: {target.shape}")
+                    self.logger.debug(f"Model output shape: {output.shape}")
                 loss = self.criterion(output, target)
                 loss.backward()
                 self.optimizer.step()
-
                 metrics_dict = self._compute_metrics(output, target)
                 epoch_loss += loss.item()
                 if batch_idx % self.log_step == 0:
@@ -169,7 +164,6 @@ class ClassificationTrainer(BaseTrainer):
                             loss=epoch_loss / (batch_idx + 1), metrics=metrics_dict
                         )
                     sleep(0.001)
-
                 if batch_idx == self.len_epoch:  # iteration-based training
                     break
 

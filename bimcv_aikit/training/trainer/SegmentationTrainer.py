@@ -59,7 +59,7 @@ class SegmentationTrainer(BaseTrainer):
                 disable=(self.logger.level >= logging.WARNING),
             ) as tepoch:
                 for batch_data in tepoch:
-                    tepoch.set_description("Progress")
+                    tepoch.set_description("Evaluation progress")
                     data, target = batch_data["image"].to(self.device), batch_data[
                         "label"
                     ].to(self.device)
@@ -159,6 +159,10 @@ class SegmentationTrainer(BaseTrainer):
                 output = self.model(data)
                 if not isinstance(output, torch.Tensor):  # for torchvision models
                     output = output["out"]
+                if epoch == 1 and batch_idx == 0:
+                    self.logger.debug(f"Model input shape: {data.shape}")
+                    self.logger.debug(f"Model ground truth shape: {target.shape}")
+                    self.logger.debug(f"Model output shape: {output.shape}")
                 loss = self.criterion(output, target)
                 loss.backward()
                 self.optimizer.step()
