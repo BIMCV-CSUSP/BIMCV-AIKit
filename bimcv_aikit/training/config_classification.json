@@ -9,7 +9,7 @@
     "args": {}
   },
   "data_loader": {
-    "module": "bimcv_aikit.dataloaders",
+    "module": "bimcv_aikit.dataloaders.examples.MnistDataLoader",
     "type": "MnistDataLoader",
     "partitions": {
       "train": "train",

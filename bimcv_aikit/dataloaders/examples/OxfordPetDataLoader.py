@@ -3,7 +3,7 @@ from torch import tensor
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets
 
-from .BaseDataLoader import BaseSegmentationDataLoader
+from ..BaseDataLoader import BaseSegmentationDataLoader
 
 
 class OxfordPet(datasets.OxfordIIITPet):

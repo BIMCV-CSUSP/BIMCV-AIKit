@@ -1,7 +1,7 @@
 from torch.utils.data import DataLoader
 from torchvision import datasets
 
-from .BaseDataLoader import BaseClassificationDataLoader
+from ..BaseDataLoader import BaseClassificationDataLoader
 
 
 class MNIST(datasets.MNIST):

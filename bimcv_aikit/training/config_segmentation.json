@@ -9,7 +9,7 @@
     "args": {}
   },
   "data_loader": {
-    "module": "bimcv_aikit.dataloaders.OxfordPetDataLoader",
+    "module": "bimcv_aikit.dataloaders.examples.OxfordPetDataLoader",
     "type": "OxfordIIITPetDataLoader",
     "partitions": {
       "train": "train",
