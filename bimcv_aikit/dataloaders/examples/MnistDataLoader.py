@@ -24,11 +24,15 @@ class MnistDataLoader(BaseClassificationDataLoader):
         self,
         data_dir: str,
         transforms: dict = {},
+        dataset_kwargs: dict = {},
+        test_run: bool = False,
         batch_size: int = 16,
         shuffle=False,
         num_workers=1,
     ):
-        super().__init__(transforms, batch_size, shuffle, num_workers)
+        super().__init__(
+            transforms, dataset_kwargs, test_run, batch_size, shuffle, num_workers
+        )
 
         self.class_weights = [1.0] * 10
         self.data_dir = data_dir

@@ -3,6 +3,7 @@ from abc import abstractmethod
 from collections.abc import Callable
 from typing import Union
 
+import torch
 from torch.utils.data.dataloader import default_collate
 
 from ..utils.config import init_obj
@@ -16,6 +17,8 @@ class BaseDataLoader(Callable):
     def __init__(
         self,
         transforms: dict = {},
+        dataset_kwargs: dict = {},
+        test_run: bool = False,
         batch_size: int = 1,
         shuffle: bool = False,
         num_workers: int = 1,
@@ -29,11 +32,13 @@ class BaseDataLoader(Callable):
             "num_workers": num_workers,
             **kwargs,
         }
+        self.dataset_kwargs = dataset_kwargs
         self.logger = logging.getLogger("dataloader")
         self.transforms = self.init_transforms(transforms)
+        self.test_run = test_run
 
     @abstractmethod
-    def __call__(self, partition: str):
+    def __call__(self, partition: str) -> Union[torch.utils.data.DataLoader, None]:
         """
         Returns the data loader for a given partition
         """

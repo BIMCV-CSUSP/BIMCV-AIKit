@@ -42,11 +42,15 @@ class OxfordIIITPetDataLoader(BaseSegmentationDataLoader):
         data_dir: str,
         fold: str = "-1",
         transforms: dict = {},
+        dataset_kwargs: dict = {},
+        test_run: bool = False,
         batch_size: int = 4,
         shuffle=False,
         num_workers=1,
     ):
-        super().__init__(transforms, batch_size, shuffle, num_workers)
+        super().__init__(
+            transforms, dataset_kwargs, test_run, batch_size, shuffle, num_workers
+        )
 
         self.data_dir = data_dir
         fold_int = int(fold)
